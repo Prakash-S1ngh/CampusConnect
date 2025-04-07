@@ -14,12 +14,12 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    profileImage:{
+    profileImage: {
         type: String,  
     },
     role: {
         type: String,
-        enum: ['Student', 'Alumni'], // Restrict role to specific values
+        enum: ['Student', 'Alumni'], 
         default: 'Student',
     },
     college: {
@@ -34,8 +34,19 @@ const UserSchema = new mongoose.Schema({
     userInfo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'UserInfo',
+    },
+    isOnline: { 
+        type: Boolean, 
+        default: false 
+    },
+    lastSeen: { 
+        type: Date 
+    },
+    socketId: {  // ✅ Added socketId field
+        type: String, 
+        default: null 
     }
-});
+}, { timestamps: true });
 
 const User = mongoose.model('User', UserSchema);
-exports.module = User;
+module.exports = User;
