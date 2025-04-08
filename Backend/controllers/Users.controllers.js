@@ -171,16 +171,15 @@ exports.getUser = async (req, res) => {
 // Fetch and order connections based on messaging activity
 exports.getOrderedConnections = async (req, res) => {
     try {
-        const userId = req.userId; // Logged-in user's ID
+        const userId = req.userId;
 
-        // Get the logged-in user's details to determine their role
         const loggedInUser = await User.findById(userId).select("role");
         if (!loggedInUser) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
-        const userRole = loggedInUser.role; // e.g., "student" or "alumni"
+        const userRole = loggedInUser.role;
 
-        // **Step 1: Fetch users who sent messages to the user**
+        // Fetch messages received by the user
         const sentMessages = await Message.aggregate([
             { $match: { receiver: new mongoose.Types.ObjectId(userId) } },
             { $sort: { createdAt: -1 } },
@@ -193,7 +192,7 @@ exports.getOrderedConnections = async (req, res) => {
             }
         ]);
 
-        // **Step 2: Fetch users who received messages from the user**
+        // Fetch messages sent by the user
         const receivedMessages = await Message.aggregate([
             { $match: { sender: new mongoose.Types.ObjectId(userId) } },
             { $sort: { createdAt: -1 } },
@@ -206,42 +205,52 @@ exports.getOrderedConnections = async (req, res) => {
             }
         ]);
 
-        // **Step 3: Merge both lists while maintaining priority order**
-        const allMessageUsers = [...sentMessages, ...receivedMessages];
-        const allUserIds = allMessageUsers.map(msg => msg._id.toString()); // Extract IDs
+        // Merge & deduplicate by user ID, keeping the most recent message
+        const messageMap = new Map();
 
-        // Fetch user details of those who were involved in messages
+        [...sentMessages, ...receivedMessages].forEach((msg) => {
+            const id = msg._id.toString();
+            if (!messageMap.has(id) || (msg.timestamp > messageMap.get(id).timestamp)) {
+                messageMap.set(id, msg);
+            }
+        });
+
+        const allMessageUsers = Array.from(messageMap.values());
+        const allUserIds = allMessageUsers.map(msg => msg._id);
+
+        // Get user details of those messaged
         const messagedUsers = await User.find({ _id: { $in: allUserIds } })
             .select("name profileImage role");
 
-        // **Step 4: Fetch remaining users with the same role (student/alumni)**
+        // Remaining users of same role (excluding messaged + self)
         const remainingUsers = await User.find({
-            _id: { $nin: allUserIds }, // Exclude messaged users
-            role: userRole, // Only fetch users with the same role
-            _id: { $ne: userId } // Exclude self
+            _id: { $nin: [...allUserIds, userId] },
+            role: userRole
         }).select("name profileImage role");
 
-        // **Step 5: Fetch connections for ordering**
+        // Fetch connections for ordering
         const allConnections = await Connection.find({
             $or: [
                 { senderUser: userId },
                 { receiverUser: userId },
             ],
-        })
-            .populate("senderUser receiverUser")
-            .sort({ createdAt: -1 });
+        }).populate("senderUser receiverUser")
+          .sort({ createdAt: -1 });
 
-        // **Step 6: Combine all users into a final ordered response**
+        // Final list
         const finalUsers = [
-            ...messagedUsers.map(user => ({
-                userId: user._id,
-                name: user.name,
-                profileImage: user.profileImage,
-                role: user.role,
-                lastMessage: allMessageUsers.find(msg => msg._id.toString() === user._id.toString())?.lastMessage || "None",
-                timestamp: allMessageUsers.find(msg => msg._id.toString() === user._id.toString())?.timestamp || null,
-                priority: "messaged"
-            })),
+            ...messagedUsers.map(user => {
+                const msg = messageMap.get(user._id.toString());
+                return {
+                    userId: user._id,
+                    name: user.name,
+                    profileImage: user.profileImage,
+                    role: user.role,
+                    lastMessage: msg?.lastMessage || "None",
+                    timestamp: msg?.timestamp || null,
+                    priority: "messaged"
+                };
+            }),
             ...remainingUsers.map(user => ({
                 userId: user._id,
                 name: user.name,
@@ -260,7 +269,6 @@ exports.getOrderedConnections = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
-
 
 // Fetch messages for a specific room
 exports.getMessages = async (req, res) => {

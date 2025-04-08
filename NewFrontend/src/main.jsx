@@ -10,7 +10,7 @@ import { StudentContextProvider } from './components/Student/StudentContextProvi
 
 createRoot(document.getElementById('root')).render(
 
-  <StrictMode>
+
     <BrowserRouter>
       <ErrorBoundary>
         <StudentContextProvider>
@@ -18,5 +18,4 @@ createRoot(document.getElementById('root')).render(
         </StudentContextProvider>
       </ErrorBoundary>
     </BrowserRouter>
-  </StrictMode>
 )

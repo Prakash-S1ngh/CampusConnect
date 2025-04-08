@@ -6,6 +6,7 @@ import Signup from './Authorization/Signup';
 import StudentDashboard from './components/Home/StudentDashboard';
 import LoginPage from './Authorization/LoginPage';
 import  { StudentContextProvider } from './components/Student/StudentContextProvider';
+import VideoCall from './components/Text/VideoCall';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Route path='/DashBoard' element={<StudentDashboard/>}></Route>
       <Route path='/signup' element={<Signup/>}></Route>
       <Route path='/Login' element={<LoginPage/>}></Route>
+      <Route path='/call' element={<VideoCall/>}></Route>
      </Routes>
    
      </StudentContextProvider>

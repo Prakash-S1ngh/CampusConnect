@@ -29,8 +29,10 @@ const StudentContextProvider = ({ children }) => {
         });
         setUser(response.data.user);
         setLoggedIn(true);
+        console.log("User fetched:", response.data.user);
+        // Set user online status
 
-        // Notify backend that user is online
+        // Notify backend that user is online 
         socket.emit("userOnline", response.data.user._id);
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -39,6 +41,7 @@ const StudentContextProvider = ({ children }) => {
         setLoading(false);
       }
     };
+    console.log("Fetching user...");
 
     fetchUser();
   }, []);
@@ -49,6 +52,7 @@ const StudentContextProvider = ({ children }) => {
       setUser(null);
       setLoggedIn(false);
       document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      localStorage.clear(); // Flush local storage
     } catch (error) {
       console.error("Error logging out:", error);
     }

@@ -4,6 +4,7 @@ import { StudentContext } from "../Student/StudentContextProvider";
 import axios from "axios";
 import { url } from "../../lib/PostUrl";
 import { io } from "socket.io-client";
+import { Link } from "react-router-dom"; 
 
 const API_URL = `${url}/student/v2`;
 const SOCKET_URL = `${url}`;
@@ -79,6 +80,9 @@ const ChatApp = () => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
+    const isSender = (msgSender) =>
+        (typeof msgSender === "string" && msgSender === user._id) ||
+        (typeof msgSender === "object" && msgSender._id === user._id);
 
     return (
         <div className="flex h-screen">
@@ -97,23 +101,22 @@ const ChatApp = () => {
                         <Search className="absolute left-2 top-2.5 text-gray-400" size={16} />
                     </div>
                 </div>
-                
+
                 {/* Friends list - scrollable independently */}
                 <div className="flex-1 overflow-y-auto">
-                    {friends.filter((friend) => 
+                    {friends.filter((friend) =>
                         friend.name.toLowerCase().includes(searchQuery.toLowerCase())
                     ).map((friend) => (
                         <div
                             key={friend._id}
                             onClick={() => setSelectedFriend(friend)}
-                            className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${
-                                selectedFriend?._id === friend._id ? "bg-blue-50 border-l-4 border-blue-500" : ""
-                            }`}
+                            className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${selectedFriend?._id === friend._id ? "bg-blue-50 border-l-4 border-blue-500" : ""
+                                }`}
                         >
-                            <img 
-                                src={friend.profileImage || "/api/placeholder/40/40"} 
-                                alt={friend.name} 
-                                className="w-12 h-12 rounded-full" 
+                            <img
+                                src={friend.profileImage || "/api/placeholder/40/40"}
+                                alt={friend.name}
+                                className="w-12 h-12 rounded-full"
                             />
                             <div className="ml-3 flex-1">
                                 <div className="font-medium">{friend.name}</div>
@@ -130,16 +133,16 @@ const ChatApp = () => {
                     {/* Chat header - fixed */}
                     <div className="flex items-center justify-between p-3 bg-white border-b border-gray-200">
                         <div className="flex items-center">
-                            <button 
-                                onClick={() => setSelectedFriend(null)} 
+                            <button
+                                onClick={() => setSelectedFriend(null)}
                                 className="md:hidden p-2 mr-2 rounded-full hover:bg-gray-100"
                             >
                                 <ArrowLeft size={20} className="text-gray-600" />
                             </button>
-                            <img 
-                                src={selectedFriend.profileImage || "/api/placeholder/40/40"} 
-                                alt={selectedFriend.name} 
-                                className="w-10 h-10 rounded-full mr-3" 
+                            <img
+                                src={selectedFriend.profileImage || "/api/placeholder/40/40"}
+                                alt={selectedFriend.name}
+                                className="w-10 h-10 rounded-full mr-3"
                             />
                             <div>
                                 <div className="font-medium">{selectedFriend.name}</div>
@@ -149,7 +152,15 @@ const ChatApp = () => {
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Video size={20} className="text-gray-600 cursor-pointer" />
+                            <Link
+                                to="/call"
+                                state={{
+                                    sender: user._id,
+                                    receiver: selectedFriend.userId
+                                }}
+                            >
+                                <Video size={20} className="text-gray-600 cursor-pointer" />
+                            </Link>
                             <Calendar size={20} className="text-gray-600 cursor-pointer" />
                             <MoreVertical size={20} className="text-gray-600 cursor-pointer" />
                         </div>
@@ -159,19 +170,18 @@ const ChatApp = () => {
                     <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
                         <div className="flex flex-col">
                             {messages.map((msg, index) => (
-                                <div 
-                                    key={index} 
-                                    className={`flex mb-4 ${
-                                        msg.sender === user._id ? "justify-end" : "justify-start"
-                                    }`}
+                                <div
+                                    key={index}
+                                    className={`flex mb-4 ${msg.sender === user._id ? "justify-end" : "justify-start"
+                                        }`}
                                 >
                                     {/* Receiver's message (left-aligned) */}
-                                    {msg.sender._id !== user._id && (
+                                    {!isSender(msg.sender) && (
                                         <div className="flex items-end">
-                                            <img 
-                                                src={selectedFriend.profileImage || "/api/placeholder/40/40"} 
-                                                alt={selectedFriend.name} 
-                                                className="w-8 h-8 rounded-full mr-2 self-end" 
+                                            <img
+                                                src={selectedFriend.profileImage || "/api/placeholder/40/40"}
+                                                alt={selectedFriend.name}
+                                                className="w-8 h-8 rounded-full mr-2 self-end"
                                             />
                                             <div className="max-w-xs p-3 bg-white text-gray-800 rounded-lg rounded-bl-none shadow">
                                                 <p className="break-words">{msg.message}</p>
@@ -181,9 +191,9 @@ const ChatApp = () => {
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {/* Sender's message (right-aligned) */}
-                                    {msg.sender._id === user._id && (
+                                    {isSender(msg.sender) && (
                                         <div className="flex items-end">
                                             <div className="max-w-xs p-3 bg-blue-500 text-white rounded-lg rounded-br-none">
                                                 <p className="break-words">{msg.message}</p>
@@ -191,10 +201,10 @@ const ChatApp = () => {
                                                     {formatTime(msg.createdAt)}
                                                 </span>
                                             </div>
-                                            <img 
-                                                src={user.profileImage || "/api/placeholder/40/40"} 
-                                                alt="You" 
-                                                className="w-8 h-8 rounded-full ml-2 self-end" 
+                                            <img
+                                                src={user.profileImage || "/api/placeholder/40/40"}
+                                                alt="You"
+                                                className="w-8 h-8 rounded-full ml-2 self-end"
                                             />
                                         </div>
                                     )}
@@ -214,9 +224,9 @@ const ChatApp = () => {
                                 placeholder="Type a message..."
                                 className="flex-1 p-2 mx-2 rounded-full border border-gray-300 focus:outline-none focus:border-blue-500"
                             />
-                            <button 
-                                type="submit" 
-                                className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50" 
+                            <button
+                                type="submit"
+                                className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50"
                                 disabled={!message.trim()}
                             >
                                 <Send size={20} />
