@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Peer from "peerjs";
 import { Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import React from "react";
 import { url } from "../../lib/PostUrl";
 
 const socket = io(`${url}`);
 
 const VideoCall = () => {
+  const navigate = useNavigate();
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -20,6 +21,7 @@ const VideoCall = () => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerInstance = useRef(null);
+  const callInstance = useRef(null);
 
   useEffect(() => {
     const getMedia = async () => {
@@ -40,41 +42,46 @@ const VideoCall = () => {
       });
 
       peer.on("open", (id) => {
-        console.log("My Peer ID:", id);
-
-        // Join Room and send your peerId
         socket.emit("joinRoom", { sender, receiver, peerId: id });
       });
 
-      // Handle incoming call
       peer.on("call", (call) => {
-        call.answer(stream); // Answer the call with local stream
+        call.answer(stream);
 
-        call.on("stream", (remoteStream )=> {
+        call.on("stream", (remoteStream) => {
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
         });
+
+        callInstance.current = call;
       });
 
-      // When the other user's peerId is received from server
       socket.on("remote-peer-id", (remotePeerId) => {
-        console.log("Received remote peer ID:", remotePeerId);
-
-        const call = peer.call(remotePeerId, stream); // Initiate call
-        call.on("stream", remoteStream => {
+        const call = peer.call(remotePeerId, stream);
+        call.on("stream", (remoteStream) => {
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
         });
+
+        callInstance.current = call;
       });
 
       peerInstance.current = peer;
     };
 
     getMedia();
+
+    socket.on("call-ended", () => {
+      endCall();
+    });
+
+    return () => {
+      socket.off("call-ended");
+    };
   }, []);
 
   const toggleMic = () => {
@@ -91,6 +98,34 @@ const VideoCall = () => {
     }
   };
 
+  const endCall = () => {
+    // Notify server
+    socket.emit("end-call", { sender, receiver });
+
+    // Stop local media tracks
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+
+    // Clear video elements
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+    // Close peer call
+    if (callInstance.current) {
+      callInstance.current.close();
+    }
+
+    // Destroy peer connection
+    if (peerInstance.current) {
+      peerInstance.current.destroy();
+    }
+
+    // Optional: redirect or alert
+    alert("Call Ended");
+    navigate(-1);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-black text-white">
       <div className="flex-1 relative">
@@ -105,7 +140,7 @@ const VideoCall = () => {
         <button onClick={toggleVideo} className={`p-3 rounded-full ${videoOn ? 'bg-gray-700' : 'bg-red-600'}`}>
           {videoOn ? <Video size={20} /> : <VideoOff size={20} />}
         </button>
-        <button className="p-3 rounded-full bg-red-600">
+        <button onClick={endCall} className="p-3 rounded-full bg-red-600">
           <Phone size={20} />
         </button>
       </div>

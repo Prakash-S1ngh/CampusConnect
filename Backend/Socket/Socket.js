@@ -35,11 +35,16 @@ const setupSocket = (server) => {
             const roomId = [sender, receiver].sort().join("_");
             socket.join(roomId);
             console.log(`User ${socket.id} joined room ${roomId}`);
-        
+
             // Send peerId to the other person
             socket.to(roomId).emit("remote-peer-id", peerId);
         });
-        
+
+        // 💥 Call End Logic
+        socket.on("end-call", ({ to }) => {
+            console.log(`Call ended with ${to}`);
+            io.to(to).emit("call-ended");
+        });
 
         socket.on("sendMessage", async ({ sender, receiver, message }) => {
             try {

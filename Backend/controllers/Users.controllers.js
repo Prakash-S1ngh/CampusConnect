@@ -118,7 +118,7 @@ exports.login = async (req, res) => {
             httpOnly: true,  // Prevents client-side access
             secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
             sameSite: 'None', //for cookie cross-origin
-            maxAge: 3600000,  // 1 hour
+            maxAge: 24*3600000,  // 1 hour
         });
 
         res.status(200).json({success:true ,message: 'Login successful', user });
