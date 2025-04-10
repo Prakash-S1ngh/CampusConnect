@@ -1,1 +1,1 @@
-export const url = "http://localhost:4000";
+export const url = "https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app/";

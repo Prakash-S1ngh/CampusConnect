@@ -6,6 +6,8 @@ const UserRouter = require('./routes/User.routes');
 const http = require('http');
 const setupSocket = require('./Socket/Socket');
 require('dotenv').config();
+const url = process.env.URL
+const frontendurl = process.env.FRONTEND_URL || 'http://localhost:5173'; // Default to localhost if not set
 
 const app = express();
 const server = http.createServer(app); // Create HTTP server
@@ -15,14 +17,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: frontendurl,
     credentials: true
 }));
 
 // Routes
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-});
+
 
 // Database Connection
 connectDB();
@@ -36,5 +36,8 @@ setupSocket(server); // Initialize socket with the server
 // Start the server
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app/`);
+});
+app.get('/', (req, res) => {
+    res.send('Hello World!');
 });
