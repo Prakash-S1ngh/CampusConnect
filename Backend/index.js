@@ -22,8 +22,9 @@ app.use(cookieParser());
 // }));
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app"
+    frontendurl
   ];
+  console.log("Allowed Origins:", allowedOrigins);
   
   app.use(cors({
     origin: function (origin, callback) {
