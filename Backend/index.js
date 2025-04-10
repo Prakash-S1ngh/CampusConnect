@@ -37,7 +37,7 @@ const allowedOrigins = [
     },
     credentials: true
   }));
-
+  app.options('*', cors()); // Handle preflight requests globally
 // Routes
 
 
