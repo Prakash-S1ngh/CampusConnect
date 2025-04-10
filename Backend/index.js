@@ -25,21 +25,25 @@ app.use(cookieParser());
 //     "https://campus-connect-ro72-three.vercel.app"
 //   ];
 
-const allowedOrigins="https://campus-connect-ro72-three.vercel.app";
+// const allowedOrigins="https://campus-connect-ro72-three.vercel.app";
 
-  console.log("Allowed Origins:", allowedOrigins);
+//   console.log("Allowed Origins:", allowedOrigins);
   
-  app.use(cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true
-  }));
+//   app.use(cors({
+//     origin: function (origin, callback) {
+//       // allow requests with no origin (like mobile apps, curl)
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true
+//   }));
+
+
+app.use(cors({origin:"https://campus-connect-ro72-three.vercel.app",credentials:true}));
+
 // Routes
 
 
