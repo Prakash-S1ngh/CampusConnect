@@ -4,7 +4,7 @@ import { StudentContext } from "../Student/StudentContextProvider";
 import axios from "axios";
 import { url } from "../../lib/PostUrl";
 import { io } from "socket.io-client";
-import { Link } from "react-router-dom"; 
+import { Link } from "react-router-dom";
 
 const API_URL = `${url}/student/v2`;
 const SOCKET_URL = `${url}`;
@@ -17,16 +17,19 @@ const ChatApp = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedFriend, setSelectedFriend] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [loadingFriends, setLoadingFriends] = useState(true);
+    const [loadingMessages, setLoadingMessages] = useState(false);
 
     useEffect(() => {
         const fetchFriends = async () => {
             try {
-                console.log("Apiing fetchConnnections",`${API_URL}/fetchConnnections`);
+                setLoadingFriends(true);
                 const response = await axios.get(`${API_URL}/fetchConnnections`, { withCredentials: true });
-                console.log("Friends response:", response.data);
                 setFriends(response.data.success ? response.data.users : []);
             } catch (error) {
                 console.error("Error fetching friends:", error);
+            } finally {
+                setLoadingFriends(false);
             }
         };
         fetchFriends();
@@ -39,10 +42,13 @@ const ChatApp = () => {
 
             const fetchMessages = async () => {
                 try {
+                    setLoadingMessages(true);
                     const response = await axios.get(`${API_URL}/messages?roomId=${roomId}`, { withCredentials: true });
                     setMessages(response.data.messages.reverse());
                 } catch (error) {
                     console.error("Error fetching messages:", error);
+                } finally {
+                    setLoadingMessages(false);
                 }
             };
             fetchMessages();
@@ -53,10 +59,7 @@ const ChatApp = () => {
         socket.on("receiveMessage", (msg) => {
             setMessages((prevMessages) => [...prevMessages, msg]);
         });
-
-        return () => {
-            socket.off("receiveMessage");
-        };
+        return () => socket.off("receiveMessage");
     }, []);
 
     const sendMessage = (e) => {
@@ -71,25 +74,29 @@ const ChatApp = () => {
         };
 
         socket.emit("sendMessage", msgData);
-        // setMessages((prevMessages) => [...prevMessages, msgData]);
         setMessage("");
     };
 
-    // Format timestamp to display
     const formatTime = (timestamp) => {
         if (!timestamp) return "";
         const date = new Date(timestamp);
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
+
     const isSender = (msgSender) =>
         (typeof msgSender === "string" && msgSender === user._id) ||
         (typeof msgSender === "object" && msgSender._id === user._id);
 
+    const Spinner = () => (
+        <div className="flex justify-center items-center h-full p-4">
+            <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
+
     return (
         <div className="flex h-screen">
-            {/* Left sidebar - independent scrolling */}
+            {/* Sidebar */}
             <div className="w-80 h-screen flex flex-col overflow-hidden bg-white border-r border-gray-200">
-                {/* Search bar - fixed */}
                 <div className="p-4 border-b border-gray-200">
                     <div className="relative">
                         <input
@@ -103,35 +110,36 @@ const ChatApp = () => {
                     </div>
                 </div>
 
-                {/* Friends list - scrollable independently */}
                 <div className="flex-1 overflow-y-auto">
-                    {friends.filter((friend) =>
-                        friend.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).map((friend) => (
-                        <div
-                            key={friend._id}
-                            onClick={() => setSelectedFriend(friend)}
-                            className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${selectedFriend?._id === friend._id ? "bg-blue-50 border-l-4 border-blue-500" : ""
-                                }`}
-                        >
-                            <img
-                                src={friend.profileImage || "/api/placeholder/40/40"}
-                                alt={friend.name}
-                                className="w-12 h-12 rounded-full"
-                            />
-                            <div className="ml-3 flex-1">
-                                <div className="font-medium">{friend.name}</div>
-                                <div className="text-sm text-gray-500 truncate">{friend.lastMessage}</div>
+                    {loadingFriends ? (
+                        <Spinner />
+                    ) : (
+                        friends.filter((friend) =>
+                            friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).map((friend) => (
+                            <div
+                                key={friend._id}
+                                onClick={() => setSelectedFriend(friend)}
+                                className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${selectedFriend?._id === friend._id ? "bg-blue-50 border-l-4 border-blue-500" : ""}`}
+                            >
+                                <img
+                                    src={friend.profileImage || "/api/placeholder/40/40"}
+                                    alt={friend.name}
+                                    className="w-12 h-12 rounded-full"
+                                />
+                                <div className="ml-3 flex-1">
+                                    <div className="font-medium">{friend.name}</div>
+                                    <div className="text-sm text-gray-500 truncate">{friend.lastMessage}</div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
-            {/* Chat section - independent scrolling */}
+            {/* Chat Area */}
             {selectedFriend ? (
                 <div className="flex-1 h-screen flex flex-col overflow-hidden">
-                    {/* Chat header - fixed */}
                     <div className="flex items-center justify-between p-3 bg-white border-b border-gray-200">
                         <div className="flex items-center">
                             <button
@@ -153,13 +161,7 @@ const ChatApp = () => {
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Link
-                                to="/call"
-                                state={{
-                                    sender: user._id,
-                                    receiver: selectedFriend.userId
-                                }}
-                            >
+                            <Link to="/call" state={{ sender: user._id, receiver: selectedFriend.userId }}>
                                 <Video size={20} className="text-gray-600 cursor-pointer" />
                             </Link>
                             <Calendar size={20} className="text-gray-600 cursor-pointer" />
@@ -167,54 +169,52 @@ const ChatApp = () => {
                         </div>
                     </div>
 
-                    {/* Messages area - independently scrollable */}
                     <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
-                        <div className="flex flex-col">
-                            {messages.map((msg, index) => (
-                                <div
-                                    key={index}
-                                    className={`flex mb-4 ${msg.sender === user._id ? "justify-end" : "justify-start"
-                                        }`}
-                                >
-                                    {/* Receiver's message (left-aligned) */}
-                                    {!isSender(msg.sender) && (
-                                        <div className="flex items-end">
-                                            <img
-                                                src={selectedFriend.profileImage || "/api/placeholder/40/40"}
-                                                alt={selectedFriend.name}
-                                                className="w-8 h-8 rounded-full mr-2 self-end"
-                                            />
-                                            <div className="max-w-xs p-3 bg-white text-gray-800 rounded-lg rounded-bl-none shadow">
-                                                <p className="break-words">{msg.message}</p>
-                                                <span className="text-xs block text-right mt-1 text-gray-500">
-                                                    {formatTime(msg.createdAt)}
-                                                </span>
+                        {loadingMessages ? (
+                            <Spinner />
+                        ) : (
+                            <div className="flex flex-col">
+                                {messages.map((msg, index) => (
+                                    <div
+                                        key={index}
+                                        className={`flex mb-4 ${isSender(msg.sender) ? "justify-end" : "justify-start"}`}
+                                    >
+                                        {!isSender(msg.sender) && (
+                                            <div className="flex items-end">
+                                                <img
+                                                    src={selectedFriend.profileImage || "/api/placeholder/40/40"}
+                                                    alt={selectedFriend.name}
+                                                    className="w-8 h-8 rounded-full mr-2 self-end"
+                                                />
+                                                <div className="max-w-xs p-3 bg-white text-gray-800 rounded-lg rounded-bl-none shadow">
+                                                    <p className="break-words">{msg.message}</p>
+                                                    <span className="text-xs block text-right mt-1 text-gray-500">
+                                                        {formatTime(msg.createdAt)}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Sender's message (right-aligned) */}
-                                    {isSender(msg.sender) && (
-                                        <div className="flex items-end">
-                                            <div className="max-w-xs p-3 bg-blue-500 text-white rounded-lg rounded-br-none">
-                                                <p className="break-words">{msg.message}</p>
-                                                <span className="text-xs block text-right mt-1 text-blue-100">
-                                                    {formatTime(msg.createdAt)}
-                                                </span>
+                                        )}
+                                        {isSender(msg.sender) && (
+                                            <div className="flex items-end">
+                                                <div className="max-w-xs p-3 bg-blue-500 text-white rounded-lg rounded-br-none">
+                                                    <p className="break-words">{msg.message}</p>
+                                                    <span className="text-xs block text-right mt-1 text-blue-100">
+                                                        {formatTime(msg.createdAt)}
+                                                    </span>
+                                                </div>
+                                                <img
+                                                    src={user.profileImage || "/api/placeholder/40/40"}
+                                                    alt="You"
+                                                    className="w-8 h-8 rounded-full ml-2 self-end"
+                                                />
                                             </div>
-                                            <img
-                                                src={user.profileImage || "/api/placeholder/40/40"}
-                                                alt="You"
-                                                className="w-8 h-8 rounded-full ml-2 self-end"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Message input - fixed at bottom */}
                     <div className="bg-white border-t border-gray-200 p-3">
                         <form className="flex items-center" onSubmit={sendMessage}>
                             <Smile size={20} className="text-gray-500 cursor-pointer" />
