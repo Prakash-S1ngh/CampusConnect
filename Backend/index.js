@@ -20,10 +20,13 @@ app.use(cookieParser());
 //     origin: "http://localhost:5173",
 //     credentials: true
 // }));
-const allowedOrigins = [
-    // "http://localhost:5173",
-    "https://campus-connect-ro72-three.vercel.app"
-  ];
+// const allowedOrigins = [
+//     // "http://localhost:5173",
+//     "https://campus-connect-ro72-three.vercel.app"
+//   ];
+
+const allowedOrigins="https://campus-connect-ro72-three.vercel.app";
+
   console.log("Allowed Origins:", allowedOrigins);
   
   app.use(cors({
