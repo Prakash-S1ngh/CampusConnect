@@ -21,8 +21,8 @@ app.use(cookieParser());
 //     credentials: true
 // }));
 const allowedOrigins = [
-    "http://localhost:5173",
-    "https://campus-connect-ro72-three.vercel.app/"
+    // "http://localhost:5173",
+    "https://campus-connect-ro72-three.vercel.app"
   ];
   console.log("Allowed Origins:", allowedOrigins);
   
