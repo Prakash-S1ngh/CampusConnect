@@ -27,7 +27,7 @@ const LoginPage = () => {
       if (response.data.success) {
         setUser(response.data.user);
         showToast('Login successful! Redirecting...', 'success');
-        setTimeout(() => navigate('/DashBoard'), 2000);  // Redirect after 2 seconds
+        setTimeout(() => navigate('/DashBoard'));
       } else {
         showToast('Invalid credentials. Please try again.', 'error');
       }

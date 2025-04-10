@@ -59,7 +59,7 @@ setupSocket(server); // Initialize socket with the server
 // Start the server
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-    console.log(`Server is running on https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app/`);
+    console.log(`Server is running on https://campus-connect-d5eg.vercel.app/`);
 });
 
 app.get('/', (req, res) => {

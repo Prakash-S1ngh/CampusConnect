@@ -4,7 +4,8 @@ import Peer from "peerjs";
 import { Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import React from "react";
-const socket = io("http://localhost:4000"); 
+import { url } from "../../lib/PostUrl";
+const socket = io(`${url}`); 
 
 
 const  VideoCall = () => {
@@ -19,7 +20,7 @@ const  VideoCall = () => {
   const remoteVideoRef = useRef(null);
   const peerInstance = useRef(null);
 
-  const roomId = "room1";
+
 
   useEffect(() => {
     const getMedia = async () => {
