@@ -22,7 +22,7 @@ app.use(cookieParser());
 // }));
 const allowedOrigins = [
     "http://localhost:5173",
-    frontendurl
+    "https://campus-connect-ro72-three.vercel.app/"
   ];
   console.log("Allowed Origins:", allowedOrigins);
   
@@ -37,7 +37,6 @@ const allowedOrigins = [
     },
     credentials: true
   }));
-  app.options('*', cors()); // Handle preflight requests globally
 // Routes
 
 
