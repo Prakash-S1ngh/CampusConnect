@@ -21,6 +21,7 @@ const ChatApp = () => {
     useEffect(() => {
         const fetchFriends = async () => {
             try {
+                console.log("Apiing fetchConnnections",`${API_URL}/fetchConnnections`);
                 const response = await axios.get(`${API_URL}/fetchConnnections`, { withCredentials: true });
                 console.log("Friends response:", response.data);
                 setFriends(response.data.success ? response.data.users : []);

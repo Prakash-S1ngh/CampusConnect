@@ -90,7 +90,6 @@ exports.signup = async (req, res) => {
 // Update Login Controller to include additional fields
 exports.login = async (req, res) => {
     try {
-        console.log("User is ",req.body);
         const { email, password } = req.body;
         console.log("Email is ",email);
         console.log("Password is ",password);
@@ -118,7 +117,7 @@ exports.login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,  // Prevents client-side access
             secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
-            sameSite: 'Strict',  // Helps prevent CSRF attacks
+            sameSite: 'None', //for cookie cross-origin
             maxAge: 3600000,  // 1 hour
         });
 
