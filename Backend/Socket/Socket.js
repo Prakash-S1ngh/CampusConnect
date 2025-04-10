@@ -31,10 +31,13 @@ const setupSocket = (server) => {
             io.to(to).emit("signal-accepted", signal);
         });
 
-        socket.on("joinRoom", ({ sender, receiver }) => {
-            const roomId = [sender, receiver].sort().join("_"); // Ensure consistent room ID
+        socket.on("joinRoom", ({ sender, receiver, peerId }) => {
+            const roomId = [sender, receiver].sort().join("_");
             socket.join(roomId);
             console.log(`User ${socket.id} joined room ${roomId}`);
+        
+            // Send peerId to the other person
+            socket.to(roomId).emit("remote-peer-id", peerId);
         });
         
 

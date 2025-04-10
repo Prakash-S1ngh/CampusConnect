@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Search, ArrowLeft, Video, Calendar, MoreVertical, Smile, Send } from "lucide-react";
 import { StudentContext } from "../Student/StudentContextProvider";
 import axios from "axios";
@@ -19,6 +19,7 @@ const ChatApp = () => {
     const [messages, setMessages] = useState([]);
     const [loadingFriends, setLoadingFriends] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
+    const messagesEndRef = useRef(null);
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -57,10 +58,16 @@ const ChatApp = () => {
 
     useEffect(() => {
         socket.on("receiveMessage", (msg) => {
-            setMessages((prevMessages) => [...prevMessages, msg]);
+            setMessages((prev) => [...prev, msg]);
         });
         return () => socket.off("receiveMessage");
     }, []);
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
 
     const sendMessage = (e) => {
         e.preventDefault();
@@ -80,7 +87,7 @@ const ChatApp = () => {
     const formatTime = (timestamp) => {
         if (!timestamp) return "";
         const date = new Date(timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
     const isSender = (msgSender) =>
@@ -114,25 +121,33 @@ const ChatApp = () => {
                     {loadingFriends ? (
                         <Spinner />
                     ) : (
-                        friends.filter((friend) =>
-                            friend.name.toLowerCase().includes(searchQuery.toLowerCase())
-                        ).map((friend) => (
-                            <div
-                                key={friend._id}
-                                onClick={() => setSelectedFriend(friend)}
-                                className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${selectedFriend?._id === friend._id ? "bg-blue-50 border-l-4 border-blue-500" : ""}`}
-                            >
-                                <img
-                                    src={friend.profileImage || "/api/placeholder/40/40"}
-                                    alt={friend.name}
-                                    className="w-12 h-12 rounded-full"
-                                />
-                                <div className="ml-3 flex-1">
-                                    <div className="font-medium">{friend.name}</div>
-                                    <div className="text-sm text-gray-500 truncate">{friend.lastMessage}</div>
+                        friends
+                            .filter((friend) =>
+                                friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
+                            .map((friend) => (
+                                <div
+                                    key={friend._id}
+                                    onClick={() => setSelectedFriend(friend)}
+                                    className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${
+                                        selectedFriend?._id === friend._id
+                                            ? "bg-blue-50 border-l-4 border-blue-500"
+                                            : ""
+                                    }`}
+                                >
+                                    <img
+                                        src={friend.profileImage || "/api/placeholder/40/40"}
+                                        alt={friend.name}
+                                        className="w-12 h-12 rounded-full"
+                                    />
+                                    <div className="ml-3 flex-1">
+                                        <div className="font-medium">{friend.name}</div>
+                                        <div className="text-sm text-gray-500 truncate">
+                                            {friend.lastMessage}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            ))
                     )}
                 </div>
             </div>
@@ -177,12 +192,17 @@ const ChatApp = () => {
                                 {messages.map((msg, index) => (
                                     <div
                                         key={index}
-                                        className={`flex mb-4 ${isSender(msg.sender) ? "justify-end" : "justify-start"}`}
+                                        className={`flex mb-4 ${
+                                            isSender(msg.sender) ? "justify-end" : "justify-start"
+                                        }`}
                                     >
                                         {!isSender(msg.sender) && (
                                             <div className="flex items-end">
                                                 <img
-                                                    src={selectedFriend.profileImage || "/api/placeholder/40/40"}
+                                                    src={
+                                                        selectedFriend.profileImage ||
+                                                        "/api/placeholder/40/40"
+                                                    }
                                                     alt={selectedFriend.name}
                                                     className="w-8 h-8 rounded-full mr-2 self-end"
                                                 />
@@ -211,13 +231,20 @@ const ChatApp = () => {
                                         )}
                                     </div>
                                 ))}
+                                <div ref={messagesEndRef} />
                             </div>
                         )}
                     </div>
 
                     <div className="bg-white border-t border-gray-200 p-3">
                         <form className="flex items-center" onSubmit={sendMessage}>
-                            <Smile size={20} className="text-gray-500 cursor-pointer" />
+                            <button
+                                type="button"
+                                onClick={() => alert("Emoji picker not implemented yet")}
+                                className="p-1 rounded-full hover:bg-gray-100"
+                            >
+                                <Smile size={20} className="text-gray-500" />
+                            </button>
                             <input
                                 type="text"
                                 value={message}

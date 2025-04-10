@@ -5,27 +5,27 @@ import { Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import React from "react";
 import { url } from "../../lib/PostUrl";
-const socket = io(`${url}`); 
 
+const socket = io(`${url}`);
 
-const  VideoCall = () => {
+const VideoCall = () => {
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   const [remoteStream, setRemoteStream] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+
   const location = useLocation();
-  const{sender , receiver} = location.state || {};
+  const { sender, receiver } = location.state || {};
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerInstance = useRef(null);
 
-
-
   useEffect(() => {
     const getMedia = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
+
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
@@ -41,13 +41,16 @@ const  VideoCall = () => {
 
       peer.on("open", (id) => {
         console.log("My Peer ID:", id);
-        
-        socket.emit("joinRoom", { sender , receiver });
+
+        // Join Room and send your peerId
+        socket.emit("joinRoom", { sender, receiver, peerId: id });
       });
 
-      peer.on("call", call => {
-        call.answer(stream);
-        call.on("stream", remoteStream => {
+      // Handle incoming call
+      peer.on("call", (call) => {
+        call.answer(stream); // Answer the call with local stream
+
+        call.on("stream", (remoteStream )=> {
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
@@ -55,8 +58,11 @@ const  VideoCall = () => {
         });
       });
 
-      socket.on("user-connected", remotePeerId => {
-        const call = peer.call(remotePeerId, stream);
+      // When the other user's peerId is received from server
+      socket.on("remote-peer-id", (remotePeerId) => {
+        console.log("Received remote peer ID:", remotePeerId);
+
+        const call = peer.call(remotePeerId, stream); // Initiate call
         call.on("stream", remoteStream => {
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) {
@@ -105,5 +111,6 @@ const  VideoCall = () => {
       </div>
     </div>
   );
-}
+};
+
 export default VideoCall;
