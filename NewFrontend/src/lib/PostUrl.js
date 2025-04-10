@@ -1,1 +1,1 @@
-export const url = "https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app/";
+export const url = "https://campus-connectnitb-git-main-prakash-kumar-singhs-projects.vercel.app";

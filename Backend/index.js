@@ -16,10 +16,26 @@ const server = http.createServer(app); // Create HTTP server
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-    origin: frontendurl,
+// app.use(cors({
+//     origin: "http://localhost:5173",
+//     credentials: true
+// }));
+const allowedOrigins = [
+    "http://localhost:5173",
+    frontendurl
+  ];
+  
+  app.use(cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true
-}));
+  }));
 
 // Routes
 
