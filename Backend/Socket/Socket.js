@@ -7,7 +7,7 @@ require("dotenv").config();
 const setupSocket = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "https://campusconnect-1-tw1a.onrender.com/",
+            origin: "https://campusconnect-1-tw1a.onrender.com",
             credentials: true,
             methods: ["GET", "POST"],
         },
