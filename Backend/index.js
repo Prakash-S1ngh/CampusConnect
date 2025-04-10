@@ -16,33 +16,17 @@ const server = http.createServer(app); // Create HTTP server
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(cors({
-//     origin: "http://localhost:5173",
-//     credentials: true
-// }));
-// const allowedOrigins = [
-//     // "http://localhost:5173",
-//     "https://campus-connect-ro72-three.vercel.app"
-//   ];
 
-// const allowedOrigins="https://campus-connect-ro72-three.vercel.app";
 
-//   console.log("Allowed Origins:", allowedOrigins);
   
-//   app.use(cors({
-//     origin: function (origin, callback) {
-//       // allow requests with no origin (like mobile apps, curl)
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true
-//   }));
 
 
-app.use(cors({origin:"https://campus-connect-ro72-three.vercel.app",credentials:true}));
+
+app.use(cors({
+    origin:"https://campus-connect-ro72-three.vercel.app",
+    credentials:true
+})
+);
 
 // Routes
 
@@ -63,5 +47,5 @@ server.listen(port, () => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Hello World!');
+    res.send('Hello World! This is the backend server.');
 });
