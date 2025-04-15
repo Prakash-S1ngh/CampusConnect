@@ -19,7 +19,7 @@ const SignupForm = () => {
     skills: ''
   });
 
-  const [imagePreview, setImagePreview] = useState(null); // ✅ Store image preview
+  const [imagePreview, setImagePreview] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -30,50 +30,62 @@ const SignupForm = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData((prev) => ({ ...prev, image: file, imageUrl: '' })); // ✅ Clear imageUrl when uploading
+      setFormData((prev) => ({ ...prev, image: file, imageUrl: '' }));
       const imageUrl = URL.createObjectURL(file);
       setImagePreview(imageUrl);
-      console.log("Image is ", file);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!formData.image && !formData.imageUrl) {
       toast.error("Please upload an image or provide an image URL.");
       return;
     }
-  
+
     const data = new FormData();
     data.append('name', formData.name);
     data.append('email', formData.email);
     data.append('password', formData.password);
     data.append('college', formData.college);
     data.append('role', formData.role);
-    data.append('bio', formData.bio);
-    data.append('skills', formData.skills);
-  
+
+    if (formData.role === 'Student') {
+      data.append('bio', formData.bio);
+      data.append('skills', formData.skills);
+    }
+
     if (formData.image) {
       data.append('image', formData.image);
     } else if (formData.imageUrl) {
       data.append('imageUrl', formData.imageUrl);
     }
-  
-    // ✅ Debugging: Log FormData contents
-    for (let pair of data.entries()) {
-      console.log(`${pair[0]}: ${pair[1]}`);
-    }
-  
+
     try {
-      const response = await axios.post(`${url}/student/v2/signup`, data, {
+      let endpoint = '';
+      switch (formData.role) {
+        case 'Student':
+          endpoint = '/student/v2/signup';
+          break;
+        case 'Alumni':
+          endpoint = '/alumni/v2/signup';
+          break;
+        case 'Faculty':
+          endpoint = '/faculty/v2/signup';
+          break;
+        default:
+          toast.error('Please select a valid role');
+          return;
+      }
+        console.log("Form Data:",`${url}${endpoint}` );
+      const response = await axios.post(`${url}${endpoint}`, data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
-  
+
       toast.success(response.data.message);
       navigate('/Login');
-  
     } catch (error) {
       toast.error(error.response?.data?.message || 'An unexpected error occurred');
     }
@@ -96,7 +108,6 @@ const SignupForm = () => {
           <input type="file" id="image" name="image" accept="image/*" className="hidden" onChange={handleImageChange} />
         </div>
 
-        {/* Form Heading */}
         <h2 className="text-3xl font-bold text-white text-center mt-10 mb-8">Create Account</h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -105,7 +116,7 @@ const SignupForm = () => {
           <InputField name="password" label="Password" type="password" onChange={handleChange} />
           <InputField name="college" label="College Name" type="text" onChange={handleChange} />
 
-          {/* Role Select */}
+          {/* Role Dropdown */}
           <div className="group relative">
             <select
               name="role"
@@ -117,10 +128,11 @@ const SignupForm = () => {
               <option value="" disabled className="text-gray-500">Select Role</option>
               <option value="Student" className="text-gray-900">Student</option>
               <option value="Alumni" className="text-gray-900">Alumni</option>
+              <option value="Faculty" className="text-gray-900">Faculty</option>
             </select>
           </div>
 
-          {/* Additional UserInfo Fields for Students */}
+          {/* Additional Fields for Students only */}
           {formData.role === 'Student' && (
             <>
               <InputField name="bio" label="Bio" type="text" onChange={handleChange} />
@@ -128,7 +140,7 @@ const SignupForm = () => {
             </>
           )}
 
-          {/* Image Upload OR URL */}
+          {/* Image Upload or Image URL */}
           <div className="flex flex-col space-y-4">
             <div className="text-center text-white">OR</div>
             <InputField
@@ -137,22 +149,18 @@ const SignupForm = () => {
               type="text"
               onChange={(e) => {
                 handleChange(e);
-
-                // ✅ Check if the input is a valid URL
                 const urlPattern = /^(http|https):\/\/[^ "]+$/;
                 if (urlPattern.test(e.target.value)) {
-                  setImagePreview(e.target.value); // ✅ Update preview only for valid URLs
+                  setImagePreview(e.target.value);
                 }
               }}
             />
           </div>
 
-          {/* Submit Button */}
           <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-4 py-3 font-medium transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
             Sign Up
           </button>
 
-          {/* Login Link */}
           <p className="text-center text-gray-400 mt-4">
             Already have an account?{' '}
             <Link to='/Login' className="text-blue-400 hover:text-blue-300 transition-colors duration-300">
@@ -165,7 +173,7 @@ const SignupForm = () => {
   );
 };
 
-// Reusable Input Field Component
+// Reusable Input Component
 const InputField = ({ name, label, type, onChange }) => (
   <div className="group relative">
     <input

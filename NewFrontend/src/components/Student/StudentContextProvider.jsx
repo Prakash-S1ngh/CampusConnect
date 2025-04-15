@@ -11,6 +11,10 @@ const StudentContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
+  // const SOCKET_URL = `${url}`;
+  // const socket = io(SOCKET_URL, { withCredentials: true });
+
+  
 
   // Load activeTab from localStorage or set default
   const [activeTab, setActiveTab] = useState(() => {
@@ -59,7 +63,7 @@ const StudentContextProvider = ({ children }) => {
   };
 
   return (
-    <StudentContext.Provider value={{ user, setUser, loading, loggedIn, logout, activeTab, setActiveTab }}>
+    <StudentContext.Provider value={{ user, setUser, loading, loggedIn, logout, activeTab, setActiveTab ,socket }}>
       {children}
     </StudentContext.Provider>
   );

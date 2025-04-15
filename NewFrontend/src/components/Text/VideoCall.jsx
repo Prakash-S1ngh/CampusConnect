@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Peer from "peerjs";
 import { Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import React from "react";
 import { url } from "../../lib/PostUrl";
+import { StudentContext } from "../Student/StudentContextProvider";
 
-const socket = io(`${url}`);
+// const socket = io(`${url}`);
 
 const VideoCall = () => {
+  const {socket} = useContext(StudentContext);
   const navigate = useNavigate();
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);

@@ -3,11 +3,19 @@ const mongoose = require("mongoose");
 const Message = require("../models/Messages.models");
 const User = require("../models/User.models");
 require("dotenv").config();
+let io;
 
 const setupSocket = (server) => {
-    const io = new Server(server, {
+    // const io = new Server(server, {
+    //     cors: {
+    //         origin: "https://campusconnect-1-tw1a.onrender.com",
+    //         credentials: true,
+    //         methods: ["GET", "POST"],
+    //     },
+    // });
+    io = new Server(server, {
         cors: {
-            origin: "https://campusconnect-1-tw1a.onrender.com",
+            origin: "http://localhost:5173",
             credentials: true,
             methods: ["GET", "POST"],
         },
@@ -92,4 +100,4 @@ const setupSocket = (server) => {
     return io;
 };
 
-module.exports = setupSocket;
+module.exports = {setupSocket , io};

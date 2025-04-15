@@ -7,11 +7,11 @@ import { io } from "socket.io-client";
 import { Link } from "react-router-dom";
 
 const API_URL = `${url}/student/v2`;
-const SOCKET_URL = `${url}`;
-const socket = io(SOCKET_URL, { withCredentials: true });
+// const SOCKET_URL = `${url}`;
+// const socket = io(SOCKET_URL, { withCredentials: true });
 
 const ChatApp = () => {
-    const { user } = useContext(StudentContext);
+    const { user , socket } = useContext(StudentContext);
     const [friends, setFriends] = useState([]);
     const [message, setMessage] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -20,21 +20,38 @@ const ChatApp = () => {
     const [loadingFriends, setLoadingFriends] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const messagesEndRef = useRef(null);
+   
+    const activeTab =  localStorage.getItem("activeTab");
 
     useEffect(() => {
-        const fetchFriends = async () => {
+        const fetchUsers = async () => {
             try {
                 setLoadingFriends(true);
-                const response = await axios.get(`${API_URL}/fetchConnnections`, { withCredentials: true });
+    
+                let endpoint = "";
+    
+                if (activeTab === "friends") {
+                    endpoint = `${API_URL}/fetchConnnections`;
+                } else if (activeTab === "mentors") {
+                    endpoint = `${API_URL}/getAlumni`;
+                }  else {
+                    console.warn("Invalid activeTab in localStorage.");
+                    setLoadingFriends(false);
+                    return;
+                }
+    
+                const response = await axios.get(endpoint, { withCredentials: true });
                 setFriends(response.data.success ? response.data.users : []);
+                console.log(`${activeTab} Data:`, response.data.users);
             } catch (error) {
-                console.error("Error fetching friends:", error);
+                console.error("Error fetching users:", error);
             } finally {
                 setLoadingFriends(false);
             }
         };
-        fetchFriends();
-    }, []);
+    
+        fetchUsers();
+    }, [activeTab]);
 
     useEffect(() => {
         if (selectedFriend) {
