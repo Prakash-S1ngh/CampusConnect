@@ -94,6 +94,13 @@ const setupSocket = (server) => {
             socket.leave(roomId);
             console.log(`User ${socket.id} left room ${roomId}`);
         });
+        
+        socket.on("joinCollegeRoom", (collegeId) => {
+            if (collegeId) {
+                socket.join(collegeId);
+                console.log(`Socket ${socket.id} joined room for college ${collegeId}`);
+            }
+        });
 
     });
 

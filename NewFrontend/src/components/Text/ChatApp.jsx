@@ -21,7 +21,7 @@ const ChatApp = () => {
     const [loadingMessages, setLoadingMessages] = useState(false);
     const messagesEndRef = useRef(null);
    
-    const activeTab =  localStorage.getItem("activeTab");
+    const  activeTab =  localStorage.getItem("activeTab");
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -34,15 +34,21 @@ const ChatApp = () => {
                     endpoint = `${API_URL}/fetchConnnections`;
                 } else if (activeTab === "mentors") {
                     endpoint = `${API_URL}/getAlumni`;
-                }  else {
+                } else if(activeTab === "juniors"){
+                    endpoint = `${API_URL}/getjuniors`;
+                }
+                
+                else {
                     console.warn("Invalid activeTab in localStorage.");
                     setLoadingFriends(false);
                     return;
                 }
     
                 const response = await axios.get(endpoint, { withCredentials: true });
+                
+                console.log("current tab ",activeTab);
+                console.log(`${activeTab} Data:`, response.data);
                 setFriends(response.data.success ? response.data.users : []);
-                console.log(`${activeTab} Data:`, response.data.users);
             } catch (error) {
                 console.error("Error fetching users:", error);
             } finally {

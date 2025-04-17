@@ -25,6 +25,7 @@ const StudentContextProvider = ({ children }) => {
     localStorage.setItem("activeTab", activeTab);
   }, [activeTab]);
 
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -49,6 +50,12 @@ const StudentContextProvider = ({ children }) => {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (socket && user?.college) {
+        socket.emit("joinCollegeRoom", user.college.toString());
+    }
+}, [socket, user]);
 
   const logout = async () => {
     try {

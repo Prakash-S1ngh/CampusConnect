@@ -117,7 +117,7 @@ exports.login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,  // Prevents client-side access
             secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
-            sameSite: 'None', //for cookie cross-origin
+            sameSite: 'Strict', //for cookie cross-origin
             maxAge: 24*3600000,  // 1 hour
         });
 
@@ -546,6 +546,101 @@ exports.updateUser = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching alumni connections:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+exports.getJuniors = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const loggedInUser = await User.findById(userId).select("college");
+
+        if (!loggedInUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const userCollege = loggedInUser.college;
+
+        // Fetch messages received by the user
+        const receivedMsgs = await Message.aggregate([
+            { $match: { receiver: new mongoose.Types.ObjectId(userId) } },
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: "$sender",
+                    lastMessage: { $first: "$message" },
+                    timestamp: { $first: "$createdAt" }
+                }
+            }
+        ]);
+
+        // Fetch messages sent by the user
+        const sentMsgs = await Message.aggregate([
+            { $match: { sender: new mongoose.Types.ObjectId(userId) } },
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: "$receiver",
+                    lastMessage: { $first: "$message" },
+                    timestamp: { $first: "$createdAt" }
+                }
+            }
+        ]);
+
+        const messageMap = new Map();
+
+        [...receivedMsgs, ...sentMsgs].forEach((msg) => {
+            const id = msg._id.toString();
+            if (!messageMap.has(id) || msg.timestamp > messageMap.get(id).timestamp) {
+                messageMap.set(id, msg);
+            }
+        });
+
+        const messagedUserIds = Array.from(messageMap.keys());
+
+        // Get messaged students from same college
+        const messagedJuniors = await User.find({
+            _id: { $in: messagedUserIds },
+            role: "Student",
+            college: userCollege
+        }).select("name profileImage role");
+
+        // Get students from same college not messaged
+        const remainingJuniors = await User.find({
+            _id: { $nin: [...messagedUserIds, userId] },
+            role: "Student",
+            college: userCollege
+        }).select("name profileImage role");
+
+        // Combine all into a single response
+        const finalUsers = [
+            ...messagedJuniors.map(user => {
+                const msg = messageMap.get(user._id.toString());
+                return {
+                    userId: user._id,
+                    name: user.name,
+                    profileImage: user.profileImage,
+                    role: user.role,
+                    lastMessage: msg?.lastMessage || "None",
+                    timestamp: msg?.timestamp || null,
+                    priority: "messaged"
+                };
+            }),
+            ...remainingJuniors.map(user => ({
+                userId: user._id,
+                name: user.name,
+                profileImage: user.profileImage,
+                role: user.role,
+                lastMessage: "None",
+                timestamp: null,
+                priority: "same-college-junior"
+            }))
+        ];
+
+        res.status(200).json({ success: true, users: finalUsers });
+
+    } catch (error) {
+        console.error("Error fetching juniors:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

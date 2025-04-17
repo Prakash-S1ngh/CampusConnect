@@ -7,6 +7,8 @@ const http = require('http');
 const {setupSocket} = require('./Socket/Socket');
 const Alumnirouter = require('./routes/Alumni.route');
 const FeedRouter = require('./routes/Feed.router');
+const Bountyrouter = require('./routes/Bounty.route');
+const { startBountyCleanupJob } = require('./controllers/Bounty.controller');
 require('dotenv').config();
 // const url = process.env.URL
 // const frontendurl = process.env.FRONTEND_URL || 'http://localhost:5173'; // Default to localhost if not set
@@ -19,16 +21,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// app.use(cors({
-//     origin:"http://localhost:5173",
-//     credentials:true
-// })
-// );
 app.use(cors({
-    origin:"https://campusconnect-1-tw1a.onrender.com",
+    origin:"http://localhost:5173",
     credentials:true
 })
 );
+// app.use(cors({
+//     origin:"https://campusconnect-1-tw1a.onrender.com",
+//     credentials:true
+// })
+// );
 
 
 // Routes
@@ -41,6 +43,7 @@ connectDB();
 app.use('/student/v2', UserRouter);
 app.use('/alumni/v2', Alumnirouter);
 app.use('/feed/v2', FeedRouter);
+app.use('/bounty/v2', Bountyrouter);
 
 // Initialize WebSocket
 setupSocket(server); // Initialize socket with the server
@@ -50,6 +53,7 @@ const port = process.env.PORT || 3000;
 server.listen(port, () => {
     console.log(`Server is running on ${port}`);
 });
+startBountyCleanupJob();
 
 app.get('/', (req, res) => {
     res.send(`

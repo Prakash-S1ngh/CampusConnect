@@ -11,7 +11,8 @@ import {
   Mail,
   LogOut,
   Menu,
-  X
+  X,
+  Award
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { url } from '../../lib/PostUrl';
@@ -23,6 +24,8 @@ import Messages from './Messages';
 import Bookmarks from './Bookmarks';
 import Inbox from './Inbox';
 import ChatApp from '../Text/ChatApp';
+import BountyBoard from '../Bounty/BountyBoard';
+import Notification from '../Post/Notification';
 
 const StudentDashboard = () => {
   // const [activeTab, setActiveTab] = useState('feed');
@@ -33,7 +36,29 @@ const StudentDashboard = () => {
 
   const { user, loading, loggedIn, logout } = useContext(StudentContext); // ✅ Use global user state
 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
+  // Fetch notifications on bell click
+  const handleBellClick = async () => {
+    try {
+      const res = await axios.get(`${url}/notification`, { withCredentials: true });
+      setNotifications(res.data.notifications);  // Adjust key as per response
+      setShowNotifications(true);
+    } catch (err) {
+      console.error("Error fetching notifications", err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await axios.put(`${url}/notification/mark-all-read`, {}, { withCredentials: true });
+      setNotifications([]);
+      setShowNotifications(false);
+    } catch (err) {
+      console.error("Failed to mark notifications as read", err);
+    }
+  };
 
   // Sample posts data
   const logoutHandler = () => {
@@ -108,6 +133,13 @@ const StudentDashboard = () => {
   if (!user) {
     return <div className="h-screen flex justify-center items-center text-red-500">Error: User data not found</div>;
   }
+  if(showNotifications){
+    return <div> <Notification
+    notifications={notifications}
+    onClose={() => setShowNotifications(false)}
+    onMarkAllRead={handleMarkAllRead}
+  /></div>
+  }
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar - hidden on mobile */}
@@ -159,29 +191,14 @@ const StudentDashboard = () => {
               <span>{user.role === 'Alumni' ? 'Juniors' : 'Mentors'}</span>
             </button>
 
-            {/* <button
-              onClick={() => setActiveTab('messages')}
-              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'messages' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
-            >
-              <MessageSquare size={20} />
-              <span>Messages</span>
-            </button> */}
 
             <button
-              onClick={() => setActiveTab('bookmarks')}
-              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'bookmarks' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+              onClick={() => setActiveTab('Bounties')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Bounties' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
             >
-              <Bookmark size={20} />
+              <Award size={20} />
               <span>Bounties</span>
             </button>
-
-            {/* <button
-              onClick={() => setActiveTab('inbox')}
-              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'inbox' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
-            > */}
-              {/* <Mail size={20} />
-              <span>Inbox</span>
-            </button> */}
           </nav>
         </div>
 
@@ -207,9 +224,11 @@ const StudentDashboard = () => {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="relative">
+          <button className="relative" onClick={handleBellClick}>
             <Bell size={20} />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            {notifications.length > 0 && (
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
           </button>
           <img
             src={user.profileImage}
@@ -260,32 +279,22 @@ const StudentDashboard = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab(user.role === 'alumni' ? 'juniors' : 'mentors')}
-              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === (user.role === 'alumni' ? 'juniors' : 'mentors') ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+              onClick={() => setActiveTab(user.role === 'Alumni' ? 'juniors' : 'mentors')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === (user.role === 'Alumni' ? 'juniors' : 'mentors') ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
             >
               <User size={20} />
-              <span>{user.role === 'alumni' ? 'Juniors' : 'Mentors'}</span>
+              <span>{user.role === 'Alumni' ? 'Juniors' : 'Mentors'}</span>
             </button>
 
-            {/* <button
-              onClick={() => {
-                setActiveTab('messages');
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center space-x-3 w-full p-2"
-            >
-              <MessageSquare size={20} />
-              <span></span>
-            </button> */}
 
             <button
               onClick={() => {
                 setActiveTab('Bounties');
                 setMobileMenuOpen(false);
+
               }}
               className="flex items-center space-x-3 w-full p-2"
             >
-              <Bookmark size={20} />
               <span>Bounties</span>
             </button>
 
@@ -348,24 +357,11 @@ const StudentDashboard = () => {
 
           {/* Mentors Tab */}
           {activeTab === "mentors" && <ChatApp />}
-
-          {/* Messages Tab */}
-          {/* {activeTab === "B" && <Messages messages={messages} />} */}
+          {activeTab === "juniors" && <ChatApp />}
 
 
           {/* Bookmarks Tab */}
-          {activeTab === "Bounties" && <Bookmarks bookmarks={bookmarks} />}
-
-          {/* Inbox Tab
-          {activeTab === "inbox" && (
-            <Inbox
-              notifications={[
-                { id: 1, title: "New campus event", message: "Tech Talk: AI in Education - Tomorrow at 5PM", time: "1h ago", icon: <Bell size={20} />, bgColor: "bg-indigo-100 text-indigo-600" },
-                { id: 2, title: "Study group invitation", message: 'James invited you to join "CS Finals Prep"', time: "3h ago", icon: <Users size={20} />, bgColor: "bg-green-100 text-green-600" },
-                { id: 3, title: "Assignment reminder", message: "Physics Problem Set due Friday at 11:59PM", time: "Yesterday", icon: <Mail size={20} />, bgColor: "bg-yellow-100 text-yellow-600" },
-              ]}
-            />
-          )} */}
+          {activeTab === "Bounties" && <BountyBoard />}
         </div>
       </div>
 
