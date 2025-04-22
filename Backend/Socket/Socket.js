@@ -107,4 +107,8 @@ const setupSocket = (server) => {
     return io;
 };
 
-module.exports = {setupSocket , io};
+const getIO = () => io;
+
+
+
+module.exports = {setupSocket , getIO ,io};

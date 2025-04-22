@@ -1,5 +1,5 @@
 const upload  = require('../config/multer.config');
-const { signup, login,  acceptRequest, rejectRequest, getUser, logout , getOrderedConnections, getMessages, addSkill, removeSkill, addProject, removeProject, updateUser, getAlumniConnections, getJuniors } = require('../controllers/Users.controllers');
+const { signup, login,  getUser, logout , getOrderedConnections, getMessages, addSkill, removeSkill, addProject, removeProject, updateUser, getAlumniConnections, getJuniors, getTeamDetails } = require('../controllers/Users.controllers');
 const { UserAuth } = require('../middleware/UserAuth.middleware');
 const express = require('express');
 const User = require('../models/User.models');
@@ -19,4 +19,5 @@ UserRouter.delete('/removeproject', removeProject);
 UserRouter.put('/updateUser',updateUser);
 UserRouter.get('/getAlumni',UserAuth,getAlumniConnections);
 UserRouter.get('/getjuniors',UserAuth,getJuniors);
+UserRouter.get('/getTeams',UserAuth ,getTeamDetails);
 module.exports = UserRouter;

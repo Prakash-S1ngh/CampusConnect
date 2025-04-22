@@ -8,7 +8,7 @@ import { StudentContext } from '../Student/StudentContextProvider';
 import OptionsMenu from '../Post/OptionsMenu';
 
 const Feed = () => {
-  const { user , socket } = useContext(StudentContext);
+  const { user, socket } = useContext(StudentContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -19,6 +19,22 @@ const Feed = () => {
   const [postType, setPostType] = useState('announcement');
   const [isPosting, setIsPosting] = useState(false);
 
+  // State for comments
+  const [commentInputs, setCommentInputs] = useState({});
+  const [commentsLoading, setCommentsLoading] = useState({});
+  const [visibleComments, setVisibleComments] = useState({});
+
+
+  const toggleComments = async (postId) => {
+    if (!visibleComments[postId]) {
+      await fetchComments(postId); // Only fetch if not already visible
+    }
+    setVisibleComments((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  };
+
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
     setIsModalOpen(false);
@@ -26,6 +42,63 @@ const Feed = () => {
     setContent('');
     setMediaFiles([]);
   };
+
+  //Connect to College Room 
+  useEffect(() => {
+    if (socket && user?.college?._id) {
+      socket.emit("joinCollegeRoom", user.college._id);
+    }
+  }, [socket, user]);
+
+  //Remaining listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    // 🔔 New Post
+    socket.on("new-post", (newPost) => {
+      setPosts(prev => [newPost, ...prev]);
+      toast.info('📢 New post added!');
+    });
+
+    // 💬 New Comment
+    socket.on("new-comment", ({ postId, comment }) => {
+      setPosts(prev => prev.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: [...(post.comments || []), comment]
+          };
+        }
+        return post;
+      }));
+    });
+
+    // ❤️ Like/Unlike update
+    socket.on("post-liked", ({ postId, userId, liked }) => {
+      setPosts(prev => prev.map(post => {
+        if (post._id === postId) {
+          const likeList = post.reactions?.like || [];
+          const updatedLikes = liked
+            ? [...likeList, userId]
+            : likeList.filter(id => id !== userId);
+          return {
+            ...post,
+            reactions: {
+              ...post.reactions,
+              like: updatedLikes
+            }
+          };
+        }
+        return post;
+      }));
+    });
+
+    return () => {
+      socket.off("new-post");
+      socket.off("new-comment");
+      socket.off("post-liked");
+    };
+  }, [socket]);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -83,17 +156,6 @@ const Feed = () => {
     }
   };
 
-  // useEffect(() => {
-  //   socket.on('new-post', (newPost) => {
-  //     setPosts(prev => [newPost, ...prev]);
-  //     toast.info('📢 New post added!');
-  //   });
-  
-  //   return () => {
-  //     socket.off('new-post');
-  //   };
-  // }, []);
-
   const fetchPosts = async () => {
     try {
       setLoading(true);
@@ -127,11 +189,122 @@ const Feed = () => {
 
   // Helper function to check if a file is a video
   const isVideoFile = (fileUrl) => {
-    if (!fileUrl || fileUrl != "string") return false;
+    if (!fileUrl || typeof fileUrl !== "string") return false;
     return fileUrl.toLowerCase().endsWith('.mp4') ||
       fileUrl.toLowerCase().endsWith('.mov') ||
       fileUrl.toLowerCase().endsWith('.webm') ||
       fileUrl.toLowerCase().includes('video');
+  };
+
+  // Function to fetch comments for a post
+  const fetchComments = async (postId) => {
+    try {
+      setCommentsLoading(prev => ({ ...prev, [postId]: true }));
+      const res = await axios.get(`${url}/feed/v2/getCommetns/${postId}`, { withCredentials: true });
+
+      // Update the post with comments
+      setPosts(prev => prev.map(post => {
+        if (post._id === postId) {
+          return { ...post, comments: res.data.comments || [] };
+        }
+        console.log("comments of the ", res.data.comments);
+        return post;
+      }));
+    } catch (err) {
+      toast.error('Failed to fetch comments');
+      console.error('Error fetching comments:', err);
+    } finally {
+      setCommentsLoading(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  // Function to add a comment
+  const addComment = async (postId) => {
+    const commentText = commentInputs[postId] || '';
+
+    if (!commentText.trim()) {
+      toast.warning('Comment cannot be empty');
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${url}/feed/v2/addComments`,
+        {
+          postId,
+          content: commentText
+        },
+        { withCredentials: true }
+      );
+
+      // Update the post with the new comment
+      setPosts(prev => prev.map(post => {
+        if (post._id === postId) {
+          const updatedComments = post.comments ? [...post.comments, res.data.comment] : [res.data.comment];
+          return { ...post, comments: updatedComments };
+        }
+        return post;
+      }));
+
+      // Clear comment input for this post
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+      toast.success('Comment added successfully');
+    } catch (err) {
+      toast.error('Failed to add comment');
+      console.error('Error adding comment:', err);
+    }
+  };
+
+  // Function to like a post
+  const likePost = async (postId) => {
+    try {
+      await axios.post(
+        `${url}/feed/v2/likePost`,
+        {
+          postId,
+          userId: user._id
+        },
+        { withCredentials: true }
+      );
+
+      // Update the post with the new like
+      setPosts(prev => prev.map(post => {
+        if (post._id === postId) {
+          // Check if user already liked
+          const userLiked = post.reactions?.like?.includes(user._id);
+
+          if (userLiked) {
+            // Remove like
+            return {
+              ...post,
+              reactions: {
+                ...post.reactions,
+                like: post.reactions.like.filter(id => id !== user._id)
+              }
+            };
+          } else {
+            // Add like
+            return {
+              ...post,
+              reactions: {
+                ...post.reactions,
+                like: [...(post.reactions?.like || []), user._id]
+              }
+            };
+          }
+        }
+        return post;
+      }));
+
+    } catch (err) {
+      toast.error('Failed to like post');
+      console.error('Error liking post:', err);
+    }
+  };
+
+  // Function to handle input change for comments
+  const handleCommentInputChange = (postId, value) => {
+    setCommentInputs(prev => ({ ...prev, [postId]: value }));
   };
 
   return (
@@ -348,16 +521,83 @@ const Feed = () => {
                 )}
 
                 <div className="flex items-center space-x-4 mt-4 text-sm text-gray-500">
-                  <button className="flex items-center space-x-1 hover:text-blue-600">
+                  <button
+                    className={`flex items-center space-x-1 hover:text-blue-600 ${post.reactions?.like?.includes(user._id) ? 'text-blue-600 font-medium' : ''
+                      }`}
+                    onClick={() => likePost(post._id)}
+                  >
                     <span>👍</span>
                     <span>{post.reactions?.like?.length || 0}</span>
                   </button>
-                  <button className="flex items-center space-x-1 hover:text-blue-600">
+
+                  {/* Show comments  */}
+                  <button
+                    className="flex items-center space-x-1 hover:text-blue-600"
+                    onClick={() => toggleComments(post._id)}
+                  >
                     <MessageSquare size={16} />
-                    <span>0</span>
+                    <span>{visibleComments[post._id] ? "Hide" : "Show"} {post.comments?.length || 0}</span>
                   </button>
-                  <button className="hover:text-blue-600">Share</button>
+
+
+                  {/* <button className="hover:text-blue-600">Share</button> */}
                 </div>
+
+                {/* Comment Input - Always Visible */}
+                <div className="flex gap-2 mt-4 border-t pt-3">
+                  <img
+                    src={user.profileImage}
+                    alt={user.name}
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Write a comment..."
+                      className="flex-1 bg-gray-100 rounded-full px-4 py-1 text-sm focus:outline-none"
+                      value={commentInputs[post._id] || ''}
+                      onChange={(e) => handleCommentInputChange(post._id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          addComment(post._id);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => addComment(post._id)}
+                      className="bg-blue-600 text-white text-sm px-3 py-1 rounded-full hover:bg-blue-700"
+                    >
+                      Post
+                    </button>
+                  </div>
+                </div>
+
+                {/* Comments List */}
+                {visibleComments[post._id] && post.comments && post.comments.length > 0 && (
+                  <div className="mt-3 pl-9">
+                    {commentsLoading[post._id] ? (
+                      <div className="text-center py-2 text-gray-500 text-sm">Loading comments...</div>
+                    ) : (
+                      post.comments.map((comment, index) => (
+                        <div key={index} className="mb-3">
+                          <div className="flex gap-2">
+                            <img
+                              src={comment.user?.profileImage || user?.profileImage}
+                              alt={comment.user?.name || "User"}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            <div className="flex-1">
+                              <div className="bg-gray-100 p-2 rounded-lg text-sm">
+                                <span className="font-medium">{comment.user?.name || "User"}</span>
+                                <p>{comment.comment}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

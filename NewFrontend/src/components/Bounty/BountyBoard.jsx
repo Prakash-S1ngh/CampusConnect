@@ -5,6 +5,7 @@ import { url } from '../../lib/PostUrl';
 import PostBounty from './PostBounty';
 import { StudentContext } from '../Student/StudentContextProvider';
 import toast from 'react-hot-toast'; // 👈 add toast import
+import "react-toastify/dist/ReactToastify.css";
 
 const difficultyColors = {
     "Beginner": "bg-green-100 text-green-800",
@@ -18,6 +19,49 @@ const BountyBoard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTags, setSelectedTags] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [participantCount, setParticipantCount] = useState(0);
+    const [bountyId, setBountyId] = useState(null);
+
+    // useEffect(() => {
+    //     if (!bountyId) return; // Do nothing if bountyId is not set
+
+    //     const listener = ({ count }) => {
+    //         setParticipantCount(count);
+    //     };
+
+    //     socket.on(`bounty:participants:${bountyId}`, listener);
+
+    //     return () => {
+    //         socket.off(`bounty:participants:${bountyId}`, listener);
+    //     };
+    // }, [bountyId]);
+
+    useEffect(() => {
+        if (!socket || !bounties.length) return;
+        const listeners = [];
+
+        bounties.forEach((bounty) => {
+            const eventKey = `bounty:participants:${bounty.bountyId}`;
+
+            const handler = (data) => {
+                // set per-bounty participant count (extend bounty object or use state map)
+                setBounties(prev =>
+                    prev.map(b =>
+                        b.bountyId === bounty.bountyId ? { ...b, totalParticipants: data.count } : b
+                    )
+                );
+            };
+
+            socket.on(eventKey, handler);
+            listeners.push({ eventKey, handler });
+        });
+
+        return () => {
+            listeners.forEach(({ eventKey, handler }) => {
+                socket.off(eventKey, handler);
+            });
+        };
+    }, [socket, bounties]);
 
     useEffect(() => {
         socket.on("newBounty", (newBounty) => {
@@ -30,6 +74,9 @@ const BountyBoard = () => {
         };
     }, [socket]);
 
+   
+   
+
     useEffect(() => {
         const fetchBounty = async () => {
             try {
@@ -37,7 +84,6 @@ const BountyBoard = () => {
                     withCredentials: true
                 });
                 setBounties(response.data.bounties);
-                console.log(response.data);
             } catch (error) {
                 console.error("Error fetching bounties:", error);
                 toast.error("Failed to fetch bounties.");
@@ -48,26 +94,28 @@ const BountyBoard = () => {
     }, []);
 
     
+
     const applyHandler = async (bountyId) => {
+       
         try {
             const response = await axios.post(
                 `${url}/bounty/v2/applying/${bountyId}`,
                 {}, // body is empty
                 { withCredentials: true }
-            );
-    
+               );
+
             // 📦 Extract backend message
             const { message } = response.data;
-    
+
             // ✅ Show success message
             toast.success(message || "Applied successfully!");
         } catch (error) {
-            console.error("Error applying for bounty:", error);
-    
-            // ❌ Get proper error message from backend (safe check for structure)
-            const message = error?.response?.data?.message || "Failed to apply for bounty.";
-    
-            // ❌ Show error toast
+            console.error("Error applying for bounty:", error.response);
+
+
+            const message = error.response.data.message;
+
+            // ✅ Show success message
             toast.error(message);
         }
     };
@@ -210,7 +258,7 @@ const BountyBoard = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center text-sm text-gray-500">
                                             <Users className="h-4 w-4 mr-1" />
-                                            <span>{bounty.participants || 0}</span>
+                                            <span>{bounty.totalParticipants}</span>
                                         </div>
                                         <div className={`text-xs font-medium px-2 py-1 rounded-full ${difficultyColors[bounty.difficulty] || 'bg-gray-100 text-gray-800'}`}>
                                             {bounty.difficulty || 'Unknown'}
@@ -220,7 +268,7 @@ const BountyBoard = () => {
                             </div>
 
                             <div className="bg-gray-50 px-6 py-3 flex justify-between gap-2">
-                                <button   onClick={() => applyHandler(bounty.bountyId)} className="w-full py-2 bg-indigo-600 text-white rounded-lg">
+                                <button onClick={() => applyHandler(bounty.bountyId)} className="w-full py-2 bg-indigo-600 text-white rounded-lg">
                                     Apply Now
                                 </button>
                                 <button

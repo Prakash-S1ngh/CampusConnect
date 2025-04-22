@@ -9,10 +9,13 @@ import  { StudentContextProvider } from './components/Student/StudentContextProv
 import VideoCall from './components/Text/VideoCall';
 import UserProfile from './components/Profile/UserProfile';
 import BountyBoard from './components/Bounty/BountyBoard';
+import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <div className="App">
+      <Toaster position="top-right" />
     <StudentContextProvider>
      <Routes>
       <Route path='/' element={<LandingPage/>}></Route>
@@ -22,6 +25,7 @@ function App() {
       <Route path='/call' element={<VideoCall/>}></Route>
       <Route path='/profile' element={<UserProfile/>}></Route>
       <Route path='/bounty' element={<BountyBoard/>}></Route>
+
       
      </Routes>
    

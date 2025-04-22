@@ -2,7 +2,11 @@ const mongoose = require('mongoose');
 const {uploadOnCloudinary , deleteFromCloudinary , extractPublicId} = require('../config/Cloudinary.config');
 const Feed = require('../models/Feed.models');
 const User = require('../models/User.models');
-const { io } = require('../Socket/Socket');
+const { io, getIO } = require('../Socket/Socket');
+const Comment = require('../models/Comment.model');
+const Like = require('../models/LIke.model'); 
+
+
 
 
 exports.createFeed = async (req, res) => {
@@ -65,7 +69,7 @@ exports.getPost = async (req, res) => {
       // Fetch posts related to that college
       const posts = await Feed.find({ college: user.college })
         .populate('createdBy', 'name profileImage role') // populate author info
-        .populate('college')          // optional: populate college name
+        .populate('college')        // optional: populate college name
         .sort({ createdAt: -1 });
   
       return res.status(200).json({ success: true, posts });
@@ -167,5 +171,126 @@ exports.getPost = async (req, res) => {
         message: "Failed to edit post",
         error: error.message
       });
+    }
+  };
+
+  //Comment's Sections 
+  exports.addComment = async (req, res) => {
+    try {
+      const {  postId, content } = req.body;
+      const userId = req.userId;
+
+      const user = await User.findById(userId)
+      if(!postId || !content || !userId){
+        return res.status(400).json({ message: "Post ID, content, and user ID are required" });
+      }
+  
+      const newComment = await Comment.create({
+        feed: postId,
+        user: user._id,
+        comment:content,
+      });
+  
+      const updatedPost = await Feed.findByIdAndUpdate(
+        postId,
+        { $push: { comments: newComment._id } },
+        { new: true }
+      );
+      const io = getIO();
+      io.to(user.college._id).emit("new-comment", { postId, comment: newComment });
+  
+      return res.status(200).json(updatedPost);
+    } catch (err) {
+      console.error("Add comment error:", err);
+      res.status(500).json({ message: "Error adding comment" , error: err });
+    }
+  };
+
+  exports.deleteComment = async (req, res) => {
+    try {
+      const { postId, commentId, user } = req.body;
+  
+      const updatedPost = await Post.findByIdAndUpdate(
+        postId,
+        { $pull: { comments: { _id: commentId } } },  // remove by comment ID
+        { new: true }
+      );
+  
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+  
+      const io = getIO();
+      io.to(user.college._id).emit("comment-deleted", { postId, commentId });
+  
+      res.status(200).json(updatedPost);
+    } catch (err) {
+      console.error("Delete comment error:", err);
+      res.status(500).json({ error: "Error deleting comment" });
+    }
+  };
+
+  exports.getComment = async (req, res) => {
+    try {
+      const postId = req.params.id;
+  
+      const comments = await Comment.find({ feed: postId })
+        .sort({ createdAt: -1 }) // Most recent comments first
+        .populate("user", "name profileImage") // Populating user's name and profile image
+        .exec();
+  
+      res.status(200).json({
+        success:true,
+        comments:comments
+      });
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  };
+
+
+
+  exports.addLikes = async (req, res) => {
+    try {
+      const { postId } = req.body;
+      const userId = req.userId;
+  
+      const post = await Feed.findById(postId);
+      if (!post) return res.status(404).json({ error: "Post not found" });
+  
+      // Check if the like already exists
+      const existingLike = await Like.findOne({ user: userId, feed: postId });
+  
+      if (existingLike) {
+        // Unlike (remove)
+        await Like.deleteOne({ _id: existingLike._id });
+  
+        
+        io.to(req.user.college._id).emit("post-unliked", {
+          postId,
+          userId
+        });
+  
+        return res.status(200).json({ message: "Like removed" });
+      }
+  
+      // Add new like
+      const newLike = await Like.create({
+        user: userId,
+        feed: postId
+      });
+  
+      
+      io.to(req.user.college._id).emit("post-liked", {
+        postId,
+        userId
+      });
+  
+      res.status(200).json({ message: "Post liked", like: newLike });
+  
+    } catch (error) {
+      console.error("Like error:", error);
+      res.status(500).json({ error: "Error toggling like" });
     }
   };

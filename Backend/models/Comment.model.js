@@ -11,12 +11,7 @@ const CommentSchema = new mongoose.Schema({
         ref: 'User'
     },
     comment: {
-        type: String,
-        required: true
-    },
-    reactions: {
-        like: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-        dislike: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+        type: String
     },
     createdAt: {
         type: Date,

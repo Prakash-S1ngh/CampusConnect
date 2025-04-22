@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';  // ✅ Import axios
+
 import {
   Bell,
   MessageSquare,
@@ -26,6 +27,7 @@ import Inbox from './Inbox';
 import ChatApp from '../Text/ChatApp';
 import BountyBoard from '../Bounty/BountyBoard';
 import Notification from '../Post/Notification';
+import Team from './Team';
 
 const StudentDashboard = () => {
   // const [activeTab, setActiveTab] = useState('feed');
@@ -99,28 +101,60 @@ const StudentDashboard = () => {
     }
   ];
 
-  // Sample friends data
-  const friends = [
-    { id: 1, name: "Taylor Smith", status: "online", avatar: "/api/placeholder/40/40" },
-    { id: 2, name: "Jordan Lee", status: "online", avatar: "/api/placeholder/40/40" },
-    { id: 3, name: "Casey Brown", status: "offline", avatar: "/api/placeholder/40/40" },
-    { id: 4, name: "Morgan White", status: "online", avatar: "/api/placeholder/40/40" },
-    { id: 5, name: "Riley Garcia", status: "offline", avatar: "/api/placeholder/40/40" }
-  ];
+  const [bounties, setBounties] = useState([]);
 
-  // Sample mentors data
-  const mentors = [
-    { id: 1, name: "Dr. Emma Johnson", department: "Computer Science", avatar: "/api/placeholder/40/40" },
-    { id: 2, name: "Prof. Robert Chen", department: "Engineering", avatar: "/api/placeholder/40/40" },
-    { id: 3, name: "Dr. Olivia Martinez", department: "Biology", avatar: "/api/placeholder/40/40" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`${url}/student/v2/getTeams`, {
+          withCredentials: true,
+        });
+        setBounties(res.data.participation); // if you're storing in state
+        console.log("Bounty", res.data.participation);
+      } catch (error) {
+        console.error("Error fetching bounty:", error);
+      }
+    };
 
-  // Sample messages data
-  const messages = [
-    { id: 1, sender: "Taylor Smith", content: "Did you finish the assignment?", time: "10:30 AM", unread: true, avatar: "/api/placeholder/40/40" },
-    { id: 2, sender: "Dr. Emma Johnson", content: "Office hours changed to 2-4pm", time: "Yesterday", unread: false, avatar: "/api/placeholder/40/40" },
-    { id: 3, sender: "Campus Events", content: "New event: Tech Talk this Friday", time: "Yesterday", unread: true, avatar: "/api/placeholder/40/40" }
-  ];
+    fetchData();
+  }, []);
+
+
+  const CountdownClock = ({ deadline }) => {
+    const calculateTimeLeft = () => {
+      const diff = new Date(deadline).getTime() - new Date().getTime();
+      const totalSeconds = Math.floor(diff / 1000);
+      if (totalSeconds <= 0) return "⏰ Time's up!";
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const hours = Math.floor(totalSeconds / 3600);
+      return `${hours}h ${minutes}m ${seconds}s`;
+    };
+  
+    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setTimeLeft(calculateTimeLeft());
+      }, 1000);
+      return () => clearInterval(interval);
+    }, []);
+  
+    return <span className="text-red-500 font-bold animate-pulse">⏳ {timeLeft}</span>;
+  };
+
+  const formatTimeLeft = (deadline) => {
+    const diff = new Date(deadline) - new Date();
+    const sec = Math.floor(diff / 1000);
+    if (sec < 0) return "Ended";
+
+    const hrs = Math.floor(sec / 3600);
+    const min = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+
+    return `${hrs}h ${min}m ${s}s`;
+  };
+
+
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -133,12 +167,12 @@ const StudentDashboard = () => {
   if (!user) {
     return <div className="h-screen flex justify-center items-center text-red-500">Error: User data not found</div>;
   }
-  if(showNotifications){
+  if (showNotifications) {
     return <div> <Notification
-    notifications={notifications}
-    onClose={() => setShowNotifications(false)}
-    onMarkAllRead={handleMarkAllRead}
-  /></div>
+      notifications={notifications}
+      onClose={() => setShowNotifications(false)}
+      onMarkAllRead={handleMarkAllRead}
+    /></div>
   }
   return (
     <div className="flex h-screen bg-gray-50">
@@ -198,6 +232,15 @@ const StudentDashboard = () => {
             >
               <Award size={20} />
               <span>Bounties</span>
+            </button>
+
+
+            <button
+              onClick={() => setActiveTab('Team')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Bounties' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+            >
+              <Award size={20} />
+              <span>Teams</span>
             </button>
           </nav>
         </div>
@@ -298,16 +341,16 @@ const StudentDashboard = () => {
               <span>Bounties</span>
             </button>
 
-            {/* <button
+            <button
               onClick={() => {
-                setActiveTab('inbox');
+                setActiveTab('Team');
                 setMobileMenuOpen(false);
               }}
               className="flex items-center space-x-3 w-full p-2"
             >
               <Mail size={20} />
-              <span>Inbox</span>
-            </button> */}
+              <span>Team </span>
+            </button>
 
             <button className="flex items-center space-x-3 w-full p-2 text-red-500">
               <LogOut size={20} />
@@ -362,38 +405,81 @@ const StudentDashboard = () => {
 
           {/* Bookmarks Tab */}
           {activeTab === "Bounties" && <BountyBoard />}
+          {activeTab === "Team" && <Team />}
         </div>
       </div>
 
       {/*  Right Sidebar - Only visible on larger screens */}
-      <div className="hidden lg:block w-72 p-4 border-l">
-        <h2 className="font-bold mb-4">Online Friends</h2>
-        <div className="space-y-3 mb-6">
-          {friends.filter(f => f.status === 'online').map((friend) => (
-            <div key={friend.id} className="flex items-center space-x-2">
-              <div className="relative">
-                <img src={friend.avatar} alt={friend.name} className="w-8 h-8 rounded-full" />
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border border-white"></span>
-              </div>
-              <span className="text-sm">{friend.name}</span>
-            </div>
-          ))}
-        </div>
+      {/* <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
+        <div className="bg-white rounded-xl shadow p-4">
+          <h2 className="text-lg font-semibold mb-3">Current Bounty</h2>
 
-        <h2 className="font-bold mb-4">Upcoming Events</h2>
-        <div className="space-y-3">
-          <div className="p-3 bg-indigo-50 rounded-lg">
-            <div className="text-xs text-indigo-600 font-semibold mb-1">TODAY, 5:00 PM</div>
-            <div className="font-medium mb-1">CS Department Meet & Greet</div>
-            <div className="text-xs text-gray-500">Student Center, Room 302</div>
-          </div>
-          <div className="p-3 bg-indigo-50 rounded-lg">
-            <div className="text-xs text-indigo-600 font-semibold mb-1">TOMORROW, 12:00 PM</div>
-            <div className="font-medium mb-1">Tech Talk: AI in Education</div>
-            <div className="text-xs text-gray-500">Virtual Event</div>
-          </div>
+          {bounties?.length > 0 ? (
+            <div className="border rounded-lg p-3 shadow-sm">
+              <h3 className="font-bold text-indigo-700">{bounties[0].bounty.title}</h3>
+              <p className="text-sm text-gray-600 mt-1">{bounties[0].bounty.description}</p>
+              <div className="mt-2 flex justify-between text-sm text-gray-500">
+                <span className="font-medium">Reward: ₹{bounties[0].bounty.amount}</span>
+                <span className="font-medium">{formatTimeLeft(bounties[0].bounty.deadline)}</span>
+                <span className="font-medium">{bounties[0].teamName}</span>
+                <span className="font-medium">{bounties[0].memebers}</span>
+
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No active bounty available.</p>
+          )}
         </div>
+      </div> */}
+
+
+      <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-5 border-2 border-purple-700">
+        <h2 className="text-xl font-extrabold text-white mb-4 border-b border-purple-500 pb-2">
+          🎯 Current Bounty
+        </h2>
+
+        {bounties?.length > 0 ? (
+          <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700 hover:scale-[1.02] transition">
+            <h3 className="text-2xl font-bold text-indigo-400 mb-2">
+              {bounties[0].bounty.title}
+            </h3>
+            <p className="text-sm text-gray-300 mb-3">
+              {bounties[0].bounty.description}
+            </p>
+
+            <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
+              <span className="text-green-400 font-medium">
+                💰 ₹{bounties[0].bounty.amount}
+              </span>
+              <CountdownClock deadline={bounties[0].bounty.deadline} />
+            </div>
+
+            <div className="text-sm text-gray-300 mb-2">
+              👨‍💻 Team: <span className="text-white font-semibold">{bounties[0].teamName}</span>
+            </div>
+
+            <div className="flex items-center space-x-2 mt-3">
+              {bounties[0].members?.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex flex-col items-center text-center text-xs"
+                >
+                  <img
+                    src={member.profileImage}
+                    alt={member.name}
+                    className="w-10 h-10 rounded-full border-2 border-purple-500 shadow"
+                  />
+                  <span className="text-white mt-1">{member.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No active bounty available.</p>
+        )}
       </div>
+    </div>
     </div>
   );
 };
