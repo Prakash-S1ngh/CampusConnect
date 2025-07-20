@@ -7,10 +7,8 @@ import React from "react";
 import { url } from "../../lib/PostUrl";
 import { StudentContext } from "../Student/StudentContextProvider";
 
-// const socket = io(`${url}`);
-
 const VideoCall = () => {
-  const {socket} = useContext(StudentContext);
+  const { socket } = useContext(StudentContext);
   const navigate = useNavigate();
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
@@ -49,14 +47,12 @@ const VideoCall = () => {
 
       peer.on("call", (call) => {
         call.answer(stream);
-
         call.on("stream", (remoteStream) => {
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
         });
-
         callInstance.current = call;
       });
 
@@ -68,7 +64,6 @@ const VideoCall = () => {
             remoteVideoRef.current.srcObject = remoteStream;
           }
         });
-
         callInstance.current = call;
       });
 
@@ -101,41 +96,46 @@ const VideoCall = () => {
   };
 
   const endCall = () => {
-    // Notify server
     socket.emit("end-call", { sender, receiver });
 
-    // Stop local media tracks
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
     }
 
-    // Clear video elements
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
-    // Close peer call
     if (callInstance.current) {
       callInstance.current.close();
     }
 
-    // Destroy peer connection
     if (peerInstance.current) {
       peerInstance.current.destroy();
     }
 
-    // Optional: redirect or alert
     alert("Call Ended");
     navigate(-1);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
-      <div className="flex-1 relative">
-        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-        <video ref={localVideoRef} autoPlay muted playsInline className="w-48 h-36 absolute bottom-4 right-4 border-2 border-white rounded-lg shadow-lg object-cover" />
+    <div className="flex flex-col h-[100vh] bg-black text-white overflow-hidden">
+      <div className="flex-1 relative w-full h-full">
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          playsInline
+          className="absolute bottom-4 right-4 w-32 h-24 md:w-48 md:h-36 border-2 border-white rounded-lg shadow-lg object-cover"
+        />
       </div>
 
-      <div className="bg-gray-900 p-4 flex justify-center items-center space-x-4">
+      <div className="bg-gray-900 p-3 flex justify-center items-center space-x-4 fixed bottom-0 left-0 right-0 z-10">
         <button onClick={toggleMic} className={`p-3 rounded-full ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}>
           {micOn ? <Mic size={20} /> : <MicOff size={20} />}
         </button>

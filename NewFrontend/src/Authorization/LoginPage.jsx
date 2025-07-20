@@ -23,6 +23,7 @@ const LoginPage = () => {
       });
 
       console.log("Response:", response);
+      
 
       if (response.data.success) {
         setUser(response.data.user);

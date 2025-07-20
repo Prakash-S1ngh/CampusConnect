@@ -9,6 +9,7 @@ const Alumnirouter = require('./routes/Alumni.route');
 const FeedRouter = require('./routes/Feed.router');
 const Bountyrouter = require('./routes/Bounty.route');
 const { startBountyCleanupJob } = require('./controllers/Bounty.controller');
+const Facrouter = require('./routes/Faculty.route');
 require('dotenv').config();
 // const url = process.env.URL
 // const frontendurl = process.env.FRONTEND_URL || 'http://localhost:5173'; // Default to localhost if not set
@@ -44,6 +45,7 @@ app.use('/student/v2', UserRouter);
 app.use('/alumni/v2', Alumnirouter);
 app.use('/feed/v2', FeedRouter);
 app.use('/bounty/v2', Bountyrouter);
+app.use('/faculty/v2',Facrouter);
 
 // Initialize WebSocket
 setupSocket(server); // Initialize socket with the server

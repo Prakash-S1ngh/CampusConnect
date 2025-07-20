@@ -65,3 +65,103 @@ exports.signup = async (req, res) => {
     }
 };
 
+exports.getAlumni = async (req, res) => {
+    try {
+      const userId = req.userId;
+  
+      const user = await User.findById(userId)
+        .populate('college', 'name') // only get college name
+        .populate('alumniDetails', 'graduationYear jobTitle company skills bio projects');
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      const response = {
+        user: {
+          name: user.name,
+          email: user.email,
+          profileImage: user.profileImage || null,
+          isOnline: user.isOnline || false,
+          lastSeen: user.lastSeen || new Date().toISOString(),
+          college: user.college?.name || null
+        },
+        graduationYear: user.alumniDetails?.graduationYear || null,
+        jobTitle: user.alumniDetails?.jobTitle || null,
+        company: user.alumniDetails?.company || null,
+        skills: user.alumniDetails?.skills || [],
+        bio: user.alumniDetails?.bio || '',
+        projects: user.alumniDetails?.projects || []
+      };
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Alumni fetched successfully',
+        data: response
+      });
+  
+    } catch (error) {
+      console.error("Error fetching alumni:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+
+  exports.updateAlumni = async (req, res) => {
+    try {
+      const userId = req.userId;
+      const {
+        user,
+        graduationYear,
+        jobTitle,
+        company,
+        skills,
+        bio,
+        projects
+      } = req.body;
+      const user1 = await User.findById(userId).populate('alumniDetails');
+      if (!user1) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      // ✅ Update basic user fields
+      if (user?.name) user1.name = user.name;
+      if (user?.email) user1.email = user.email;
+      if (user?.isOnline !== undefined) user1.isOnline = user.isOnline;
+      if (user?.lastSeen) user1.lastSeen = user.lastSeen;
+  
+      // ✅ Update college
+      if (user?.college) {
+        const collegeDoc = await College.findOne({ name: user.college });
+        if (!collegeDoc) {
+          return res.status(404).json({ message: 'College not found' });
+        }
+        user1.college = collegeDoc._id;
+      }
+  
+      // ✅ Handle Alumni creation or update
+      let alumni = await Alumni.findOne({ user: userId });
+      if (!alumni) {
+        alumni = new Alumni({ user: userId });
+        user1.alumniDetails = alumni._id;
+      }
+  
+      if (graduationYear !== undefined) alumni.graduationYear = graduationYear;
+      if (jobTitle) alumni.jobTitle = jobTitle;
+      if (company) alumni.company = company;
+      if (skills) alumni.skills = skills;
+      if (bio) alumni.bio = bio;
+      if (Array.isArray(projects)) alumni.projects = projects;
+  
+      await alumni.save();
+      await user1.save();
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Alumni updated successfully',
+        user: user1
+      });
+    } catch (error) {
+      console.error("Error updating alumni:", error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  };
+

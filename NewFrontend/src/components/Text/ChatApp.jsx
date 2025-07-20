@@ -37,6 +37,9 @@ const ChatApp = () => {
                 } else if(activeTab === "juniors"){
                     endpoint = `${API_URL}/getjuniors`;
                 }
+                else if(activeTab === "faculty"){
+                    endpoint = `${url}/faculty/v2/getFaculty`;
+                }
                 
                 else {
                     console.warn("Invalid activeTab in localStorage.");
@@ -46,7 +49,7 @@ const ChatApp = () => {
     
                 const response = await axios.get(endpoint, { withCredentials: true });
                 
-                console.log("current tab ",activeTab);
+                console.log("current tab ",response.data);
                 console.log(`${activeTab} Data:`, response.data);
                 setFriends(response.data.success ? response.data.users : []);
             } catch (error) {

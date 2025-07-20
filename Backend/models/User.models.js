@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema({
         ref: 'College',
         required: true,
     },
+    facultyDetails: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Faculty'
+    },
     alumniDetails: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Alumni',

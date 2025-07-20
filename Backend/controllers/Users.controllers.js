@@ -92,8 +92,6 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("Email is ", email);
-        console.log("Password is ", password);
         // Validate input fields
         if (!email || !password) {
             return res.status(400).json({ message: 'Please provide both email and password' });
@@ -101,6 +99,7 @@ exports.login = async (req, res) => {
 
         // Check if user exists
         const user = await User.findOne({ email }).populate('college alumniDetails userInfo');
+        console.log("User found:", user);
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }

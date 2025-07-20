@@ -13,7 +13,8 @@ import {
   LogOut,
   Menu,
   X,
-  Award
+  Award,
+  UserCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { url } from '../../lib/PostUrl';
@@ -130,7 +131,7 @@ const StudentDashboard = () => {
       const hours = Math.floor(totalSeconds / 3600);
       return `${hours}h ${minutes}m ${seconds}s`;
     };
-  
+
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
     useEffect(() => {
       const interval = setInterval(() => {
@@ -138,7 +139,7 @@ const StudentDashboard = () => {
       }, 1000);
       return () => clearInterval(interval);
     }, []);
-  
+
     return <span className="text-red-500 font-bold animate-pulse">⏳ {timeLeft}</span>;
   };
 
@@ -199,7 +200,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <nav className="space-y-2">
+          {/* <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('feed')}
               className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'feed' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
@@ -225,6 +226,14 @@ const StudentDashboard = () => {
               <span>{user.role === 'Alumni' ? 'Juniors' : 'Mentors'}</span>
             </button>
 
+            <button
+              onClick={() => setActiveTab('faculty')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'faculty' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+            >
+              <Users size={20} />
+              <span>Faculty</span>
+            </button>
+
 
             <button
               onClick={() => setActiveTab('Bounties')}
@@ -237,12 +246,73 @@ const StudentDashboard = () => {
 
             <button
               onClick={() => setActiveTab('Team')}
-              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Bounties' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Team' ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
+            >
+              <UserCheck size={20} />
+              <span>Teams</span>
+            </button>
+          </nav> */}
+
+          <nav className="space-y-2">
+            <button
+              onClick={() => setActiveTab('feed')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'feed' ? 'bg-indigo-800' : 'hover:bg-indigo-600'
+                }`}
+            >
+              <Home size={20} />
+              <span>Feed</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('friends')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'friends' ? 'bg-indigo-800' : 'hover:bg-indigo-600'
+                }`}
+            >
+              <Users size={20} />
+              <span>Friends</span>
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveTab(user.role === 'Alumni' ? 'juniors' : 'mentors')
+              }
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === (user.role?.toLowerCase() === 'alumni' ? 'juniors' : 'mentors')
+                  ? 'bg-indigo-800'
+                  : 'hover:bg-indigo-600'
+                }`}
+            >
+              <User size={20} />
+              <span>{user.role?.toLowerCase() === 'alumni' ? 'Juniors' : 'Mentors'}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('faculty')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'faculty' ? 'bg-indigo-800' : 'hover:bg-indigo-600'
+                }`}
+            >
+              <Users size={20} />
+              <span>Faculty</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('Bounties')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Bounties' ? 'bg-indigo-800' : 'hover:bg-indigo-600'
+                }`}
             >
               <Award size={20} />
+              <span>Bounties</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('Team')}
+              className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === 'Team' ? 'bg-indigo-800' : 'hover:bg-indigo-600'
+                }`}
+            >
+              <UserCheck size={20} />
               <span>Teams</span>
             </button>
           </nav>
+
         </div>
 
         <div className="mt-auto p-4">
@@ -322,6 +392,17 @@ const StudentDashboard = () => {
             </button>
 
             <button
+              onClick={() => {
+                setActiveTab('faculty');
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center space-x-3 w-full p-2"
+            >
+              <Users size={20} />
+              <span>Faculty </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab(user.role === 'Alumni' ? 'juniors' : 'mentors')}
               className={`flex items-center space-x-3 w-full p-2 rounded-lg ${activeTab === (user.role === 'Alumni' ? 'juniors' : 'mentors') ? 'bg-indigo-800' : 'hover:bg-indigo-600'}`}
             >
@@ -348,8 +429,7 @@ const StudentDashboard = () => {
               }}
               className="flex items-center space-x-3 w-full p-2"
             >
-              <Mail size={20} />
-              <span>Team </span>
+              <span>Teams</span>
             </button>
 
             <button className="flex items-center space-x-3 w-full p-2 text-red-500">
@@ -397,6 +477,8 @@ const StudentDashboard = () => {
           {activeTab === "feed" && <Feed user={user} posts={posts} />}
           {/* Friends Tab */}
           {activeTab === "friends" && <ChatApp />}
+          {/* Faculty Tab */}
+          {activeTab === "faculty" && <ChatApp />}
 
           {/* Mentors Tab */}
           {activeTab === "mentors" && <ChatApp />}
@@ -409,77 +491,54 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/*  Right Sidebar - Only visible on larger screens */}
-      {/* <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
-        <div className="bg-white rounded-xl shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Current Bounty</h2>
+
+      <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-5 border-2 border-purple-700">
+          <h2 className="text-xl font-extrabold text-white mb-4 border-b border-purple-500 pb-2">
+            🎯 Current Bounty
+          </h2>
 
           {bounties?.length > 0 ? (
-            <div className="border rounded-lg p-3 shadow-sm">
-              <h3 className="font-bold text-indigo-700">{bounties[0].bounty.title}</h3>
-              <p className="text-sm text-gray-600 mt-1">{bounties[0].bounty.description}</p>
-              <div className="mt-2 flex justify-between text-sm text-gray-500">
-                <span className="font-medium">Reward: ₹{bounties[0].bounty.amount}</span>
-                <span className="font-medium">{formatTimeLeft(bounties[0].bounty.deadline)}</span>
-                <span className="font-medium">{bounties[0].teamName}</span>
-                <span className="font-medium">{bounties[0].memebers}</span>
+            <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700 hover:scale-[1.02] transition">
+              <h3 className="text-2xl font-bold text-indigo-400 mb-2">
+                {bounties[0].bounty.title}
+              </h3>
+              <p className="text-sm text-gray-300 mb-3">
+                {bounties[0].bounty.description}
+              </p>
 
+              <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
+                <span className="text-green-400 font-medium">
+                  💰 ₹{bounties[0].bounty.amount}
+                </span>
+                <CountdownClock deadline={bounties[0].bounty.deadline} />
+              </div>
+
+              <div className="text-sm text-gray-300 mb-2">
+                👨‍💻 Team: <span className="text-white font-semibold">{bounties[0].teamName}</span>
+              </div>
+
+              <div className="flex items-center space-x-2 mt-3">
+                {bounties[0].members?.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex flex-col items-center text-center text-xs"
+                  >
+                    <img
+                      src={member.profileImage}
+                      alt={member.name}
+                      className="w-10 h-10 rounded-full border-2 border-purple-500 shadow"
+                    />
+                    <span className="text-white mt-1">{member.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No active bounty available.</p>
+            <p className="text-sm text-gray-400">No active bounty available.</p>
           )}
         </div>
-      </div> */}
-
-
-      <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-5 border-2 border-purple-700">
-        <h2 className="text-xl font-extrabold text-white mb-4 border-b border-purple-500 pb-2">
-          🎯 Current Bounty
-        </h2>
-
-        {bounties?.length > 0 ? (
-          <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700 hover:scale-[1.02] transition">
-            <h3 className="text-2xl font-bold text-indigo-400 mb-2">
-              {bounties[0].bounty.title}
-            </h3>
-            <p className="text-sm text-gray-300 mb-3">
-              {bounties[0].bounty.description}
-            </p>
-
-            <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
-              <span className="text-green-400 font-medium">
-                💰 ₹{bounties[0].bounty.amount}
-              </span>
-              <CountdownClock deadline={bounties[0].bounty.deadline} />
-            </div>
-
-            <div className="text-sm text-gray-300 mb-2">
-              👨‍💻 Team: <span className="text-white font-semibold">{bounties[0].teamName}</span>
-            </div>
-
-            <div className="flex items-center space-x-2 mt-3">
-              {bounties[0].members?.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex flex-col items-center text-center text-xs"
-                >
-                  <img
-                    src={member.profileImage}
-                    alt={member.name}
-                    className="w-10 h-10 rounded-full border-2 border-purple-500 shadow"
-                  />
-                  <span className="text-white mt-1">{member.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-400">No active bounty available.</p>
-        )}
       </div>
-    </div>
     </div>
   );
 };
