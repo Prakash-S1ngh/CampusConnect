@@ -16,7 +16,8 @@ const SignupForm = () => {
     image: null,
     imageUrl: '',
     bio: '',
-    skills: ''
+    skills: '',
+    directorRole: ''
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -143,6 +144,9 @@ const SignupForm = () => {
     if (formData.role === 'Student') {
       data.append('bio', formData.bio);
       data.append('skills', formData.skills);
+    } else if (formData.role === 'Director') {
+      data.append('directorRole', formData.directorRole);
+      // Directors manage the entire campus, no specific department needed
     }
 
     if (formData.image) {
@@ -162,6 +166,9 @@ const SignupForm = () => {
           break;
         case 'Faculty':
           endpoint = '/faculty/v2/signup';
+          break;
+        case 'Director':
+          endpoint = '/director/v2/signup';
           break;
         default:
           toast.error('Please select a valid role');
@@ -286,6 +293,7 @@ const SignupForm = () => {
               <option value="Student" className="text-gray-900">Student</option>
               <option value="Alumni" className="text-gray-900">Alumni</option>
               <option value="Faculty" className="text-gray-900">Faculty</option>
+              <option value="Director" className="text-gray-900">Director</option>
             </select>
           </div>
 
@@ -294,6 +302,29 @@ const SignupForm = () => {
             <>
               <InputField name="bio" label="Bio" type="text" onChange={handleChange} />
               <InputField name="skills" label="Skills (comma separated)" type="text" onChange={handleChange} />
+            </>
+          )}
+
+          {/* Additional Fields for Directors */}
+          {formData.role === 'Director' && (
+            <>
+              <div className="group relative">
+                <select
+                  name="directorRole"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
+                  onChange={handleChange}
+                  defaultValue=""
+                >
+                  <option value="" disabled className="text-gray-500">Select Director Role</option>
+                  <option value="Campus Director" className="text-gray-900">Campus Director</option>
+                  <option value="Academic Director" className="text-gray-900">Academic Director</option>
+                  <option value="Administrative Director" className="text-gray-900">Administrative Director</option>
+                </select>
+              </div>
+              <div className="text-xs text-gray-300 text-center mt-2">
+                Directors manage the entire campus and have administrative privileges
+              </div>
             </>
           )}
 

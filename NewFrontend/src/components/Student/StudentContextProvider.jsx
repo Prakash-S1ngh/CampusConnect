@@ -29,14 +29,39 @@ const StudentContextProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`${url}/student/v2/getInfo`, {
-          withCredentials: true,
-        });
+        // Try to get user info from student endpoint first
+        let response;
+        try {
+          response = await axios.get(`${url}/student/v2/getInfo`, {
+            withCredentials: true,
+          });
+        } catch (studentError) {
+          // If student endpoint fails, try director endpoint
+          try {
+            response = await axios.get(`${url}/director/v2/info`, {
+              withCredentials: true,
+            });
+            // Transform director response to match user format
+            response.data.user = response.data.director;
+          } catch (directorError) {
+            // If both fail, try faculty endpoint
+            try {
+              response = await axios.get(`${url}/faculty/v2/getinfo`, {
+                withCredentials: true,
+              });
+            } catch (facultyError) {
+              // If all fail, try alumni endpoint
+              response = await axios.get(`${url}/alumni/v2/getinfo`, {
+                withCredentials: true,
+              });
+            }
+          }
+        }
+        
         setUser(response.data.user);
         setLoggedIn(true);
         console.log("User fetched:", response.data.user);
-        // Set user online status
-
+        
         // Notify backend that user is online 
         socket.emit("userOnline", response.data.user._id);
       } catch (error) {
@@ -59,13 +84,27 @@ const StudentContextProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${url}/student/v2/logout`, {}, { withCredentials: true });
+      // Try to logout from the appropriate endpoint based on user role
+      if (user?.role === 'Director') {
+        await axios.post(`${url}/director/v2/logout`, {}, { withCredentials: true });
+      } else if (user?.role === 'Faculty') {
+        await axios.post(`${url}/faculty/v2/logout`, {}, { withCredentials: true });
+      } else if (user?.role === 'Alumni') {
+        await axios.post(`${url}/alumni/v2/logout`, {}, { withCredentials: true });
+      } else {
+        await axios.post(`${url}/student/v2/logout`, {}, { withCredentials: true });
+      }
+      
       setUser(null);
       setLoggedIn(false);
       document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       localStorage.clear(); // Flush local storage
     } catch (error) {
       console.error("Error logging out:", error);
+      // Even if logout fails, clear local state
+      setUser(null);
+      setLoggedIn(false);
+      localStorage.clear();
     }
   };
 

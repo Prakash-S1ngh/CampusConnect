@@ -18,23 +18,67 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${url}/student/v2/login`, { email, password }, {
-        withCredentials: true,
-      });
-
-      console.log("Response:", response);
+      // Try student login first (most common)
+      let response;
+      let loginSuccess = false;
       
+      try {
+        response = await axios.post(`${url}/student/v2/login`, { email, password }, {
+          withCredentials: true,
+        });
+        loginSuccess = true;
+      } catch (studentError) {
+        console.log("Student login failed, trying other roles...");
+        
+        // Try director login
+        try {
+          response = await axios.post(`${url}/director/v2/login`, { email, password }, {
+            withCredentials: true,
+          });
+          loginSuccess = true;
+        } catch (directorError) {
+          console.log("Director login failed, trying faculty...");
+          
+          // Try faculty login
+          try {
+            response = await axios.post(`${url}/faculty/v2/login`, { email, password }, {
+              withCredentials: true,
+            });
+            loginSuccess = true;
+          } catch (facultyError) {
+            console.log("Faculty login failed, trying alumni...");
+            
+            // Try alumni login
+            try {
+              response = await axios.post(`${url}/alumni/v2/login`, { email, password }, {
+                withCredentials: true,
+              });
+              loginSuccess = true;
+            } catch (alumniError) {
+              // All login attempts failed
+              throw new Error("Invalid credentials for all user types");
+            }
+          }
+        }
+      }
 
-      if (response.data.success) {
+      if (loginSuccess && response.data.success) {
         setUser(response.data.user);
         showToast('Login successful! Redirecting...', 'success');
-        setTimeout(() => navigate('/DashBoard'));
+        
+        // Redirect based on user role
+        const userRole = response.data.user.role;
+        if (userRole === 'Director') {
+          setTimeout(() => navigate('/director-panel'));
+        } else {
+          setTimeout(() => navigate('/DashBoard'));
+        }
       } else {
         showToast('Invalid credentials. Please try again.', 'error');
       }
     } catch (error) {
       console.error("Login Error:", error);
-      showToast(error.response?.data?.message || 'Invalid credentials', 'error');
+      showToast(error.message || 'Invalid credentials', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -107,6 +151,11 @@ const LoginPage = () => {
           <div className="mt-6 text-center">
             <span className="text-gray-600 text-sm">Don't have an account? </span>
             <Link to='/signup' className="text-blue-600 hover:text-blue-800 text-sm font-medium">Sign Up</Link>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <span className="text-gray-500 text-sm">Are you a director? </span>
+            <Link to='/director-login' className="text-purple-600 hover:text-purple-800 text-sm font-medium">Director Login</Link>
           </div>
         </div>
       </div>

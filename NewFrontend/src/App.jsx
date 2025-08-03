@@ -14,6 +14,10 @@ import { Toaster } from 'react-hot-toast';
 import { StudentContext } from './components/Student/StudentContextProvider';
 import AlumniProfile from './components/Profile/AlumniProfile';
 import FacultyProfile from './components/Profile/FacultyProfile';
+import DirectorLogin from './Authorization/DirectorLogin';
+import DirectorPanel from './components/Director/DirectorPanel';
+import DirectorProfile from './components/Profile/DirectorProfile';
+import DirectorTest from './components/Director/DirectorTest';
 
 function App() {
   const { user } = useContext(StudentContext);
@@ -27,6 +31,9 @@ function App() {
           <Route path='/DashBoard' element={<StudentDashboard />}></Route>
           <Route path='/signup' element={<Signup />}></Route>
           <Route path='/Login' element={<LoginPage />}></Route>
+          <Route path='/director-login' element={<DirectorLogin />}></Route>
+          <Route path='/director-panel' element={<DirectorPanel />}></Route>
+          <Route path='/director-test' element={<DirectorTest />}></Route>
           <Route path='/call' element={<VideoCall />}></Route>
           <Route
             path='/profile'
@@ -35,6 +42,8 @@ function App() {
                 <AlumniProfile />
               ) : user?.role === 'Faculty' ? (
                 <FacultyProfile />
+              ) : user?.role === 'Director' ? (
+                <DirectorProfile />
               ) : (
                 <UserProfile />
               )
