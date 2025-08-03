@@ -90,6 +90,45 @@ const DirectorPanel = () => {
         }
     };
 
+    const fetchCampusStudents = async () => {
+        try {
+            const response = await axios.get(`${url}/director/v2/campus-students`, {
+                withCredentials: true
+            });
+            setCampusStudents(response.data.users);
+            console.log('Campus students fetched:', response.data.users);
+        } catch (error) {
+            console.error('Error fetching campus students:', error);
+            toast.error('Failed to fetch campus students');
+        }
+    };
+
+    const fetchCampusAlumni = async () => {
+        try {
+            const response = await axios.get(`${url}/director/v2/campus-alumni`, {
+                withCredentials: true
+            });
+            setCampusAlumni(response.data.users);
+            console.log('Campus alumni fetched:', response.data.users);
+        } catch (error) {
+            console.error('Error fetching campus alumni:', error);
+            toast.error('Failed to fetch campus alumni');
+        }
+    };
+
+    const fetchCampusFaculty = async () => {
+        try {
+            const response = await axios.get(`${url}/director/v2/campus-faculty`, {
+                withCredentials: true
+            });
+            setCampusFaculty(response.data.users);
+            console.log('Campus faculty fetched:', response.data.users);
+        } catch (error) {
+            console.error('Error fetching campus faculty:', error);
+            toast.error('Failed to fetch campus faculty');
+        }
+    };
+
     const removeUser = async (userId, userName) => {
         if (!window.confirm(`Are you sure you want to remove ${userName} from the campus?`)) {
             return;
@@ -146,11 +185,26 @@ const DirectorPanel = () => {
     };
 
     const selectAllUsers = () => {
-        setSelectedUsers(campusUsers.map(user => user._id));
+        const currentUsers = getCurrentUsers();
+        setSelectedUsers(currentUsers.map(user => user.userId || user._id));
     };
 
     const clearSelection = () => {
         setSelectedUsers([]);
+    };
+
+    const getCurrentUsers = () => {
+        switch (userManagementTab) {
+            case 'students':
+                return campusStudents;
+            case 'alumni':
+                return campusAlumni;
+            case 'faculty':
+                return campusFaculty;
+            case 'all':
+            default:
+                return campusUsers;
+        }
     };
 
     const Dashboard = () => (
@@ -176,26 +230,44 @@ const DirectorPanel = () => {
 
     const Connections = () => (
         <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Campus Connections</h2>
+            <h2 className="text-2xl font-bold mb-6">Campus Directors</h2>
+            <div className="mb-4">
+                <p className="text-gray-600">Connect with other directors in your campus</p>
+                <p className="text-sm text-gray-500">Total Directors: {connections.length}</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {connections.map((user) => (
-                    <div key={user.userId} className="border rounded-lg p-4 flex items-center space-x-3">
+                    <div key={user.userId} className="border rounded-lg p-4 flex items-center space-x-3 hover:shadow-md transition-shadow">
                         <img 
                             src={user.profileImage || '/default-avatar.png'} 
                             alt={user.name}
                             className="w-12 h-12 rounded-full object-cover"
                         />
-                        <div>
+                        <div className="flex-1">
                             <h3 className="font-semibold">{user.name}</h3>
-                            <p className="text-sm text-gray-600 capitalize">{user.role}</p>
+                            <p className="text-sm text-gray-600">{user.directorRole || 'Campus Director'}</p>
+                            <p className="text-xs text-gray-500">{user.title || 'Director'}</p>
+                        </div>
+                        <div className="text-right">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Director
+                            </span>
                         </div>
                     </div>
                 ))}
+                {connections.length === 0 && (
+                    <div className="col-span-full text-center py-8">
+                        <p className="text-gray-500">No other directors found in your campus</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 
-    const UserManagement = () => (
+    const UserManagement = () => {
+        const currentUsers = getCurrentUsers();
+
+        return (
         <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Campus User Management</h2>
@@ -214,6 +286,50 @@ const DirectorPanel = () => {
                     </button>
                 </div>
             </div>
+
+            {/* User Type Tabs */}
+            <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
+                <button
+                    onClick={() => setUserManagementTab('all')}
+                    className={`flex-1 py-2 px-4 rounded-md font-medium ${
+                        userManagementTab === 'all' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    All Users ({campusUsers.length})
+                </button>
+                <button
+                    onClick={() => setUserManagementTab('students')}
+                    className={`flex-1 py-2 px-4 rounded-md font-medium ${
+                        userManagementTab === 'students' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Students ({campusStudents.length})
+                </button>
+                <button
+                    onClick={() => setUserManagementTab('faculty')}
+                    className={`flex-1 py-2 px-4 rounded-md font-medium ${
+                        userManagementTab === 'faculty' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Faculty ({campusFaculty.length})
+                </button>
+                <button
+                    onClick={() => setUserManagementTab('alumni')}
+                    className={`flex-1 py-2 px-4 rounded-md font-medium ${
+                        userManagementTab === 'alumni' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Alumni ({campusAlumni.length})
+                </button>
+            </div>
             
             <div className="overflow-x-auto">
                 <table className="min-w-full table-auto">
@@ -228,13 +344,13 @@ const DirectorPanel = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {campusUsers.map((user) => (
-                            <tr key={user._id} className="border-b">
+                        {currentUsers.map((user) => (
+                            <tr key={user.userId || user._id} className="border-b">
                                 <td className="px-4 py-2">
                                     <input 
                                         type="checkbox"
-                                        checked={selectedUsers.includes(user._id)}
-                                        onChange={() => toggleUserSelection(user._id)}
+                                        checked={selectedUsers.includes(user.userId || user._id)}
+                                        onChange={() => toggleUserSelection(user.userId || user._id)}
                                         className="rounded"
                                     />
                                 </td>
@@ -258,7 +374,7 @@ const DirectorPanel = () => {
                                 <td className="px-4 py-2">
                                     {user.role !== 'Director' && (
                                         <button 
-                                            onClick={() => removeUser(user._id, user.name)}
+                                            onClick={() => removeUser(user.userId || user._id, user.name)}
                                             disabled={loading}
                                             className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                                         >
@@ -272,7 +388,8 @@ const DirectorPanel = () => {
                 </table>
             </div>
         </div>
-    );
+        );
+    };
 
     const Messaging = () => (
         <div className="bg-white rounded-lg shadow-md p-6">
