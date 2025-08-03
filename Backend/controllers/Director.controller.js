@@ -135,6 +135,7 @@ exports.createDirector = async (req, res) => {
 };
 
 // Get director connections (other directors and faculty in same campus)
+// Get all directors from the same campus
 exports.getDirectorConnections = async (req, res) => {
     try {
         const userId = req.userId;
@@ -144,25 +145,242 @@ exports.getDirectorConnections = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
+        if (loggedInUser.role !== 'Director') {
+            return res.status(403).json({ success: false, message: "Only directors can access this endpoint" });
+        }
+
         const userCollege = loggedInUser.college;
 
-        // Get all directors and faculty from the same campus
-        const connections = await User.find({
+        // Get all directors from the same campus (excluding the logged-in director)
+        const directors = await User.find({
             college: userCollege,
             _id: { $ne: userId },
-            role: { $in: ['Director', 'Faculty'] }
-        }).select("name profileImage role");
+            role: 'Director'
+        }).populate('directorDetails').select("name profileImage role directorDetails");
 
-        const result = connections.map(user => ({
-            userId: user._id,
-            name: user.name,
-            profileImage: user.profileImage,
-            role: user.role,
+        const result = directors.map(director => ({
+            userId: director._id,
+            name: director.name,
+            profileImage: director.profileImage,
+            role: director.role,
+            directorRole: director.directorDetails?.directorRole || 'Campus Director',
+            title: director.directorDetails?.title || 'Director'
         }));
 
-        return res.status(200).json({ success: true, users: result });
+        return res.status(200).json({ 
+            success: true, 
+            users: result,
+            totalDirectors: result.length
+        });
     } catch (error) {
         console.error("Error fetching director connections:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Get all students from the same campus
+exports.getCampusStudents = async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const loggedInUser = await User.findById(userId).select("college role");
+        if (!loggedInUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (loggedInUser.role !== 'Director') {
+            return res.status(403).json({ success: false, message: "Only directors can access this endpoint" });
+        }
+
+        const userCollege = loggedInUser.college;
+        const { department, year, search } = req.query;
+
+        let query = {
+            college: userCollege,
+            role: 'Student'
+        };
+
+        // Add department filter if provided
+        if (department) {
+            query.department = department;
+        }
+
+        // Add year filter if provided
+        if (year) {
+            query.year = year;
+        }
+
+        // Add search filter if provided
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const students = await User.find(query)
+            .select("name email profileImage department year isOnline lastSeen createdAt")
+            .sort({ createdAt: -1 });
+
+        const result = students.map(student => ({
+            userId: student._id,
+            name: student.name,
+            email: student.email,
+            profileImage: student.profileImage,
+            department: student.department,
+            year: student.year,
+            isOnline: student.isOnline,
+            lastSeen: student.lastSeen,
+            joinedDate: student.createdAt
+        }));
+
+        return res.status(200).json({ 
+            success: true, 
+            users: result,
+            totalStudents: result.length
+        });
+    } catch (error) {
+        console.error("Error fetching campus students:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Get all alumni from the same campus
+exports.getCampusAlumni = async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const loggedInUser = await User.findById(userId).select("college role");
+        if (!loggedInUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (loggedInUser.role !== 'Director') {
+            return res.status(403).json({ success: false, message: "Only directors can access this endpoint" });
+        }
+
+        const userCollege = loggedInUser.college;
+        const { department, graduationYear, search } = req.query;
+
+        let query = {
+            college: userCollege,
+            role: 'Alumni'
+        };
+
+        // Add department filter if provided
+        if (department) {
+            query.department = department;
+        }
+
+        // Add graduation year filter if provided
+        if (graduationYear) {
+            query.graduationYear = graduationYear;
+        }
+
+        // Add search filter if provided
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const alumni = await User.find(query)
+            .populate('alumniDetails')
+            .select("name email profileImage department graduationYear isOnline lastSeen createdAt alumniDetails")
+            .sort({ createdAt: -1 });
+
+        const result = alumni.map(alumni => ({
+            userId: alumni._id,
+            name: alumni.name,
+            email: alumni.email,
+            profileImage: alumni.profileImage,
+            department: alumni.department,
+            graduationYear: alumni.graduationYear,
+            currentCompany: alumni.alumniDetails?.currentCompany || 'Not specified',
+            jobTitle: alumni.alumniDetails?.jobTitle || 'Not specified',
+            isOnline: alumni.isOnline,
+            lastSeen: alumni.lastSeen,
+            joinedDate: alumni.createdAt
+        }));
+
+        return res.status(200).json({ 
+            success: true, 
+            users: result,
+            totalAlumni: result.length
+        });
+    } catch (error) {
+        console.error("Error fetching campus alumni:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Get all faculty from the same campus
+exports.getCampusFaculty = async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const loggedInUser = await User.findById(userId).select("college role");
+        if (!loggedInUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (loggedInUser.role !== 'Director') {
+            return res.status(403).json({ success: false, message: "Only directors can access this endpoint" });
+        }
+
+        const userCollege = loggedInUser.college;
+        const { department, designation, search } = req.query;
+
+        let query = {
+            college: userCollege,
+            role: 'Faculty'
+        };
+
+        // Add department filter if provided
+        if (department) {
+            query.department = department;
+        }
+
+        // Add designation filter if provided
+        if (designation) {
+            query.designation = designation;
+        }
+
+        // Add search filter if provided
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const faculty = await User.find(query)
+            .populate('facultyDetails')
+            .select("name email profileImage department designation isOnline lastSeen createdAt facultyDetails")
+            .sort({ createdAt: -1 });
+
+        const result = faculty.map(faculty => ({
+            userId: faculty._id,
+            name: faculty.name,
+            email: faculty.email,
+            profileImage: faculty.profileImage,
+            department: faculty.department,
+            designation: faculty.designation,
+            expertise: faculty.facultyDetails?.expertise || 'Not specified',
+            officeLocation: faculty.facultyDetails?.officeLocation || 'Not specified',
+            isOnline: faculty.isOnline,
+            lastSeen: faculty.lastSeen,
+            joinedDate: faculty.createdAt
+        }));
+
+        return res.status(200).json({ 
+            success: true, 
+            users: result,
+            totalFaculty: result.length
+        });
+    } catch (error) {
+        console.error("Error fetching campus faculty:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

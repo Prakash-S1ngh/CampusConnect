@@ -9,6 +9,9 @@ const DirectorPanel = () => {
     const { user, setUser, logout } = useContext(StudentContext);
     const navigate = useNavigate();
     const [connections, setConnections] = useState([]);
+    const [campusStudents, setCampusStudents] = useState([]);
+    const [campusAlumni, setCampusAlumni] = useState([]);
+    const [campusFaculty, setCampusFaculty] = useState([]);
     const [campusUsers, setCampusUsers] = useState([]);
     const [analytics, setAnalytics] = useState(null);
     const [selectedUsers, setSelectedUsers] = useState([]);
@@ -16,6 +19,7 @@ const DirectorPanel = () => {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(true);
+    const [userManagementTab, setUserManagementTab] = useState('all');
 
     // Check if user is director
     useEffect(() => {
@@ -40,10 +44,13 @@ const DirectorPanel = () => {
     useEffect(() => {
         console.log('DirectorPanel: Fetching data for user:', user);
         if (user && user.role === 'Director') {
-            console.log('DirectorPanel: Fetching connections, analytics, and campus users');
+            console.log('DirectorPanel: Fetching all campus data');
             fetchConnections();
             fetchAnalytics();
             fetchCampusUsers();
+            fetchCampusStudents();
+            fetchCampusAlumni();
+            fetchCampusFaculty();
         }
     }, [user]);
 

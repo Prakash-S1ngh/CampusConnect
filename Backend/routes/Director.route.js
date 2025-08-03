@@ -4,6 +4,9 @@ const {
     loginDirector,
     logoutDirector,
     getDirectorConnections, 
+    getCampusStudents,
+    getCampusAlumni,
+    getCampusFaculty,
     getDirectorById, 
     updateDirectorById,
     removeUserFromCampus,
@@ -19,8 +22,13 @@ DirectorRouter.post('/signup', upload.single('image'), createDirector);
 DirectorRouter.post('/login', loginDirector);
 DirectorRouter.post('/logout', logoutDirector);
 
-// Get director connections (other directors and faculty in same campus)
+// Get director connections (other directors in same campus)
 DirectorRouter.get('/connections', UserAuth, getDirectorConnections);
+
+// Get campus members by role
+DirectorRouter.get('/campus-students', UserAuth, getCampusStudents);
+DirectorRouter.get('/campus-alumni', UserAuth, getCampusAlumni);
+DirectorRouter.get('/campus-faculty', UserAuth, getCampusFaculty);
 
 // Get director information
 DirectorRouter.get('/info', UserAuth, getDirectorById);
