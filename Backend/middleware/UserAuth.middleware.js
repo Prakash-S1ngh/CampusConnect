@@ -4,7 +4,7 @@ require('dotenv').config();
 exports.UserAuth = async(req, res, next) => {
     try {
         const token = req.cookies.token;
-        console.log("Token:", req.cookies);
+        console.log("Token:", req.cookies.token);
         if(!token){
             return res.status(401).json({
                 message:"the token has expired or not present"
