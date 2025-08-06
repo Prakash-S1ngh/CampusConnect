@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const DirectorProfile = () => {
     const [director, setDirector] = useState(null);

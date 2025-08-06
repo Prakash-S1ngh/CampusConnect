@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { StudentContext } from '../Student/StudentContextProvider';
 import { url } from '../../lib/PostUrl';
 import { useNavigate } from 'react-router-dom';

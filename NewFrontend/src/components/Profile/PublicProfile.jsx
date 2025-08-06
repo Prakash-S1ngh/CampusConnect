@@ -21,7 +21,8 @@ import {
   Award,
   BookOpen
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const PublicProfile = () => {
   const { userId } = useParams();

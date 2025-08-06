@@ -5,7 +5,8 @@ import { url } from '../lib/PostUrl';
 import { FaSpinner } from 'react-icons/fa';
 import { StudentContext } from '../components/Student/StudentContextProvider';
 import { Shield, Building, Users, BarChart3 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const DirectorLogin = () => {
   const { setUser, loading } = useContext(StudentContext);

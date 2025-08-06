@@ -13,7 +13,8 @@ import {
 import { StudentContext } from '../Student/StudentContextProvider';
 import { url } from '../../lib/PostUrl';
 import axios from 'axios';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const TeamAssignment = () => {
     const { user } = useContext(StudentContext);

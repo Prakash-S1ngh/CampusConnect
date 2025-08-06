@@ -2,7 +2,8 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { url } from '../../lib/PostUrl';
 import { StudentContext } from '../Student/StudentContextProvider';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const DirectorTest = () => {
     const { user } = useContext(StudentContext);

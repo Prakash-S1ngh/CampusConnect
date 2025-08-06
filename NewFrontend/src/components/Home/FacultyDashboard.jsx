@@ -24,7 +24,8 @@ import UserList from './UserList';
 
 import axios from 'axios';
 import { url } from '../../lib/PostUrl';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const FacultyDashboard = () => {
     const { user, logout, activeTab, setActiveTab } = useContext(StudentContext);
