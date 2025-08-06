@@ -118,11 +118,11 @@ exports.login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,  // Prevents client-side access
             secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
-            sameSite: 'Strict', //for cookie cross-origin
+            sameSite: 'none', //for cookie cross-origin
             maxAge: 24 * 3600000,  // 1 hour
         });
 
-        res.status(200).json({ success: true, message: 'Login successful', user });
+        return res.status(200).json({ success: true, message: 'Login successful', user });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
