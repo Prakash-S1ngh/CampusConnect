@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-    origin:"https://campusconnect-1-tw1a.onrender.com/",
+    origin:"https://campus-connect-d7ca.vercel.app/",
     credentials:true
 })
 );
