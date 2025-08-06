@@ -8,7 +8,7 @@ let io;
 const setupSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: "https://campus-connect-d7ca.vercel.app/",
+            origin: "https://campus-connect-d7ca.vercel.app",
             credentials: true,
             methods: ["GET", "POST"],
         },
