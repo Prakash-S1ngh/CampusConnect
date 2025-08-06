@@ -24,9 +24,16 @@ const PostBounty = ({ isOpen, onClose }) => {
     e.preventDefault();
     try {
       const tagsArray = formData.tags.split(',').map(tag => tag.trim());
+      
+      // Ensure deadline is properly formatted
+      const deadlineDate = new Date(formData.deadline);
+      console.log('Deadline being sent:', formData.deadline);
+      console.log('Deadline as Date object:', deadlineDate);
+      
       const res = await axios.post(`${url}/bounty/v2/createBounty`, {
         ...formData,
         tags: tagsArray,
+        deadline: deadlineDate.toISOString(), // Send as ISO string
       },
     {
       withCredentials: true,
@@ -55,7 +62,15 @@ const PostBounty = ({ isOpen, onClose }) => {
           <input name="tags" onChange={handleChange} value={formData.tags} placeholder="Tags (comma-separated)" className="w-full p-2 border rounded" />
           <textarea name="description" onChange={handleChange} value={formData.description} placeholder="Description" required className="w-full p-2 border rounded" />
           <input name="amount" type="number" onChange={handleChange} value={formData.amount} placeholder="Reward Amount" required className="w-full p-2 border rounded" />
-          <input name="deadline" type="date" onChange={handleChange} value={formData.deadline} required className="w-full p-2 border rounded" />
+          <input 
+            name="deadline" 
+            type="date" 
+            onChange={handleChange} 
+            value={formData.deadline} 
+            min={new Date().toISOString().split('T')[0]} // Prevent selecting past dates
+            required 
+            className="w-full p-2 border rounded" 
+          />
 
           <select name="difficulty" onChange={handleChange} value={formData.difficulty} required className="w-full p-2 border rounded">
             <option value="">Select Difficulty</option>

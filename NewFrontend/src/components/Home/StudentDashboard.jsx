@@ -29,6 +29,7 @@ import ChatApp from '../Text/ChatApp';
 import BountyBoard from '../Bounty/BountyBoard';
 import Notification from '../Post/Notification';
 import Team from './Team';
+import TeamAssignment from './TeamAssignment';
 
 const StudentDashboard = () => {
   // const [activeTab, setActiveTab] = useState('feed');
@@ -107,11 +108,63 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${url}/student/v2/getTeams`, {
+        // Fetch current user's teams first
+        const teamsRes = await axios.get(`${url}/student/v2/getTeams`, {
           withCredentials: true,
         });
-        setBounties(res.data.participation); // if you're storing in state
-        console.log("Bounty", res.data.participation);
+        
+        // If user has teams, get the most recent one's bounty details
+        if (teamsRes.data.success && teamsRes.data.participation.length > 0) {
+          const mostRecentTeam = teamsRes.data.participation.find(p => p.bounty);
+          if (mostRecentTeam && mostRecentTeam.bounty) {
+            setBounties([mostRecentTeam]);
+            console.log("Current bounty from team:", mostRecentTeam);
+          } else {
+            // If no teams, fetch available bounties
+            const bountyRes = await axios.get(`${url}/bounty/getBounty`, {
+              withCredentials: true,
+            });
+            if (bountyRes.data.success && bountyRes.data.bounties.length > 0) {
+              // Convert bounty format to match team format for display
+              const firstBounty = bountyRes.data.bounties[0];
+              setBounties([{
+                bounty: {
+                  title: firstBounty.title,
+                  description: firstBounty.description,
+                  amount: firstBounty.amount,
+                  deadline: new Date(Date.now() + (firstBounty.daysLeft * 24 * 60 * 60 * 1000)),
+                  isActive: true
+                },
+                teamName: 'Available Bounty',
+                members: []
+              }]);
+              console.log("Available bounty:", firstBounty);
+            } else {
+              setBounties([]);
+            }
+          }
+        } else {
+          // If no teams, fetch available bounties
+          const bountyRes = await axios.get(`${url}/bounty/getBounty`, {
+            withCredentials: true,
+          });
+          if (bountyRes.data.success && bountyRes.data.bounties.length > 0) {
+            // Convert bounty format to match team format for display
+            const firstBounty = bountyRes.data.bounties[0];
+            setBounties([{
+              bounty: {
+                title: firstBounty.title,
+                description: firstBounty.description,
+                amount: firstBounty.amount,
+                deadline: new Date(Date.now() + (firstBounty.daysLeft * 24 * 60 * 60 * 1000)),
+                isActive: true
+              },
+              teamName: 'Available Bounty',
+              members: []
+            }]);
+            console.log("Available bounty:", firstBounty);
+          }
+        }
       } catch (error) {
         console.error("Error fetching bounty:", error);
       }
@@ -123,13 +176,19 @@ const StudentDashboard = () => {
 
   const CountdownClock = ({ deadline }) => {
     const calculateTimeLeft = () => {
-      const diff = new Date(deadline).getTime() - new Date().getTime();
-      const totalSeconds = Math.floor(diff / 1000);
-      if (totalSeconds <= 0) return "⏰ Time's up!";
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      const hours = Math.floor(totalSeconds / 3600);
-      return `${hours}h ${minutes}m ${seconds}s`;
+      if (!deadline) return "⏰ No deadline set";
+      
+      try {
+        const diff = new Date(deadline).getTime() - new Date().getTime();
+        const totalSeconds = Math.floor(diff / 1000);
+        if (totalSeconds <= 0) return "⏰ Time's up!";
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const hours = Math.floor(totalSeconds / 3600);
+        return `${hours}h ${minutes}m ${seconds}s`;
+      } catch (error) {
+        return "⏰ Invalid deadline";
+      }
     };
 
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
@@ -144,15 +203,21 @@ const StudentDashboard = () => {
   };
 
   const formatTimeLeft = (deadline) => {
-    const diff = new Date(deadline) - new Date();
-    const sec = Math.floor(diff / 1000);
-    if (sec < 0) return "Ended";
+    if (!deadline) return "No deadline";
+    
+    try {
+      const diff = new Date(deadline) - new Date();
+      const sec = Math.floor(diff / 1000);
+      if (sec < 0) return "Ended";
 
-    const hrs = Math.floor(sec / 3600);
-    const min = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
+      const hrs = Math.floor(sec / 3600);
+      const min = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
 
-    return `${hrs}h ${min}m ${s}s`;
+      return `${hrs}h ${min}m ${s}s`;
+    } catch (error) {
+      return "Invalid deadline";
+    }
   };
 
 
@@ -487,58 +552,68 @@ const StudentDashboard = () => {
 
           {/* Bookmarks Tab */}
           {activeTab === "Bounties" && <BountyBoard />}
-          {activeTab === "Team" && <Team />}
+                              {activeTab === "Team" && <TeamAssignment />}
         </div>
       </div>
 
 
-      <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-5 border-2 border-purple-700">
-          <h2 className="text-xl font-extrabold text-white mb-4 border-b border-purple-500 pb-2">
-            🎯 Current Bounty
-          </h2>
+      {activeTab === "feed" && (
+        <div className="hidden lg:block w-1/4 p-4 space-y-6 overflow-y-auto">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-5 border-2 border-purple-700">
+            <h2 className="text-xl font-extrabold text-white mb-4 border-b border-purple-500 pb-2">
+              🎯 Current Bounty
+            </h2>
 
-          {bounties?.length > 0 ? (
-            <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700 hover:scale-[1.02] transition">
-              <h3 className="text-2xl font-bold text-indigo-400 mb-2">
-                {bounties[0].bounty.title}
-              </h3>
-              <p className="text-sm text-gray-300 mb-3">
-                {bounties[0].bounty.description}
-              </p>
+            {bounties?.length > 0 && bounties[0]?.bounty ? (
+              <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-700 hover:scale-[1.02] transition">
+                <h3 className="text-2xl font-bold text-indigo-400 mb-2">
+                  {bounties[0]?.bounty?.title || 'Untitled Bounty'}
+                </h3>
+                <p className="text-sm text-gray-300 mb-3">
+                  {bounties[0]?.bounty?.description || 'No description available'}
+                </p>
 
-              <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
-                <span className="text-green-400 font-medium">
-                  💰 ₹{bounties[0].bounty.amount}
-                </span>
-                <CountdownClock deadline={bounties[0].bounty.deadline} />
+                <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
+                  <span className="text-green-400 font-medium">
+                    💰 ₹{bounties[0]?.bounty?.amount || 0}
+                  </span>
+                  <CountdownClock deadline={bounties[0]?.bounty?.deadline} />
+                </div>
+
+                <div className="text-sm text-gray-300 mb-2">
+                  👨‍💻 Team: <span className="text-white font-semibold">{bounties[0]?.teamName || 'No Team'}</span>
+                </div>
+
+                <div className="flex items-center space-x-2 mt-3">
+                  {bounties[0]?.members?.map((member, index) => (
+                    <div
+                      key={member?.id || index}
+                      className="flex flex-col items-center text-center text-xs"
+                    >
+                      <img
+                        src={member?.profileImage || '/default-avatar.png'}
+                        alt={member?.name || 'Member'}
+                        className="w-10 h-10 rounded-full border-2 border-purple-500 shadow"
+                      />
+                      <span className="text-white mt-1">{member?.name || 'Unknown'}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <div className="text-sm text-gray-300 mb-2">
-                👨‍💻 Team: <span className="text-white font-semibold">{bounties[0].teamName}</span>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-400 mb-3">No active bounty available.</p>
+                <button 
+                  onClick={() => window.location.href = '/bounty'}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  Browse Bounties
+                </button>
               </div>
-
-              <div className="flex items-center space-x-2 mt-3">
-                {bounties[0].members?.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex flex-col items-center text-center text-xs"
-                  >
-                    <img
-                      src={member.profileImage}
-                      alt={member.name}
-                      className="w-10 h-10 rounded-full border-2 border-purple-500 shadow"
-                    />
-                    <span className="text-white mt-1">{member.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">No active bounty available.</p>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

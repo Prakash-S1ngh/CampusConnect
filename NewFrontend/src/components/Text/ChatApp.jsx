@@ -25,11 +25,12 @@ import axios from "axios";
 import { url } from "../../lib/PostUrl";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = `${url}/student/v2`;
 
 const ChatApp = () => {
-    const { user, socket } = useContext(StudentContext);
+    const { user, socket, activeTab } = useContext(StudentContext);
     const [friends, setFriends] = useState([]);
     const [message, setMessage] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -45,14 +46,26 @@ const ChatApp = () => {
     const [showSidebar, setShowSidebar] = useState(true);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [messageStatus, setMessageStatus] = useState({});
+    const [showVideoCall, setShowVideoCall] = useState(false);
+    const [showVoiceCall, setShowVoiceCall] = useState(false);
+    const [callStatus, setCallStatus] = useState('idle'); // idle, calling, connected
+    const [lastSeen, setLastSeen] = useState({});
+    const [unreadCounts, setUnreadCounts] = useState({});
+    const [pinnedMessages, setPinnedMessages] = useState([]);
+    const [searchMessages, setSearchMessages] = useState("");
+    const [showSearchResults, setShowSearchResults] = useState(false);
     
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-    const activeTab = localStorage.getItem("activeTab");
+    const navigate = useNavigate();
 
     // Emoji data
     const emojis = ["😊", "😂", "❤️", "👍", "🎉", "🔥", "😎", "🤔", "😢", "😡", "👋", "💪", "🎯", "⭐", "💯", "🚀"];
+
+    const handleProfileClick = (userId) => {
+        navigate(`/profile/${userId}`);
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -60,23 +73,103 @@ const ChatApp = () => {
                 setLoadingFriends(true);
                 let endpoint = "";
 
+                // Determine user role and appropriate endpoint
+                const userRole = user?.role;
+                console.log("ChatApp - activeTab:", activeTab, "userRole:", userRole);
+                
                 if (activeTab === "friends") {
-                    endpoint = `${API_URL}/fetchConnnections`;
+                    if (userRole === 'Alumni') {
+                        endpoint = `${url}/alumni/v2/connections`;
+                    } else {
+                        endpoint = `${API_URL}/fetchConnections`;
+                    }
                 } else if (activeTab === "mentors") {
                     endpoint = `${API_URL}/getAlumni`;
                 } else if (activeTab === "juniors") {
-                    endpoint = `${API_URL}/getjuniors`;
+                    if (userRole === 'Alumni') {
+                        endpoint = `${url}/alumni/v2/juniors`;
+                    } else {
+                        endpoint = `${API_URL}/getjuniors`;
+                    }
                 } else if (activeTab === "faculty") {
-                    endpoint = `${url}/faculty/v2/getFaculty`;
+                    if (userRole === 'Alumni') {
+                        endpoint = `${url}/alumni/v2/faculty`;
+                    } else if (userRole === 'Faculty') {
+                        endpoint = `${url}/faculty/v2/connections`;
+                    } else {
+                        endpoint = `${url}/faculty/v2/getFaculty`;
+                    }
+                } else if (activeTab === "peers") {
+                    if (userRole === 'Faculty') {
+                        endpoint = `${url}/faculty/v2/connections`;
+                    } else {
+                        endpoint = `${API_URL}/getFaculty`;
+                    }
+                } else if (activeTab === "alumni") {
+                    if (userRole === 'Faculty') {
+                        endpoint = `${url}/faculty/v2/connections`;
+                    } else if (userRole === 'Alumni') {
+                        endpoint = `${url}/alumni/v2/connections`;
+                    } else {
+                        endpoint = `${API_URL}/getAlumni`;
+                    }
+                } else if (activeTab === "students") {
+                    if (userRole === 'Faculty') {
+                        endpoint = `${url}/faculty/v2/connections`;
+                    } else {
+                        endpoint = `${API_URL}/getjuniors`;
+                    }
                 } else {
-                    console.warn("Invalid activeTab in localStorage.");
+                    console.warn("Invalid activeTab:", activeTab);
                     setLoadingFriends(false);
                     return;
                 }
 
                 const response = await axios.get(endpoint, { withCredentials: true });
                 console.log("current tab ", response.data);
-                setFriends(response.data.success ? response.data.users : []);
+                
+                // Handle different response formats
+                let users = [];
+                if (response.data.success) {
+                    if (response.data.users) {
+                        users = response.data.users;
+                    } else if (response.data.students) {
+                        users = response.data.students;
+                    } else if (response.data.faculty) {
+                        users = response.data.faculty;
+                    } else if (response.data.alumni) {
+                        users = response.data.alumni;
+                    } else if (response.data.connections) {
+                        // For faculty connections, filter based on active tab
+                        if (userRole === 'Faculty') {
+                            if (activeTab === "peers") {
+                                users = response.data.connections.faculty;
+                            } else if (activeTab === "alumni") {
+                                users = response.data.connections.alumni;
+                            } else if (activeTab === "students") {
+                                users = response.data.connections.students;
+                            } else {
+                                // Default: show all users
+                                users = [
+                                    ...response.data.connections.students,
+                                    ...response.data.connections.alumni,
+                                    ...response.data.connections.faculty
+                                ];
+                            }
+                        } else {
+                            // For non-faculty users, combine all user types
+                            users = [
+                                ...response.data.connections.students,
+                                ...response.data.connections.alumni,
+                                ...response.data.connections.faculty
+                            ];
+                        }
+                    }
+                }
+                
+                console.log("Loaded users:", users);
+                console.log("Sample user with messages:", users[0]);
+                setFriends(users);
             } catch (error) {
                 console.error("Error fetching users:", error);
                 toast.error("Failed to load contacts");
@@ -86,18 +179,33 @@ const ChatApp = () => {
         };
 
         fetchUsers();
-    }, [activeTab]);
+    }, [activeTab, user?.role]);
 
     useEffect(() => {
         if (selectedFriend) {
-            const roomId = [user._id, selectedFriend.userId].sort().join("_");
-            socket.emit("joinRoom", { sender: user._id, receiver: selectedFriend.userId });
+            const recipientId = selectedFriend.userId || selectedFriend._id;
+            const roomId = [user._id, recipientId].sort().join("_");
+            socket.emit("joinRoom", { sender: user._id, receiver: recipientId });
 
             const fetchMessages = async () => {
                 try {
                     setLoadingMessages(true);
-                    const response = await axios.get(`${API_URL}/messages?roomId=${roomId}`, { withCredentials: true });
-                    setMessages(response.data.messages.reverse());
+                    let endpoint = `${API_URL}/messages?roomId=${roomId}`;
+                    
+                    // Use faculty-specific endpoint if user is faculty
+                    if (user?.role === 'Faculty') {
+                        endpoint = `${url}/faculty/v2/messages/${recipientId}`;
+                    }
+                    
+                    console.log("Fetching messages from endpoint:", endpoint);
+                    const response = await axios.get(endpoint, { withCredentials: true });
+                    console.log("Messages response:", response.data);
+                    
+                    if (user?.role === 'Faculty') {
+                        setMessages(response.data.messages || []);
+                    } else {
+                        setMessages(response.data.messages.reverse());
+                    }
                 } catch (error) {
                     console.error("Error fetching messages:", error);
                     toast.error("Failed to load messages");
@@ -199,15 +307,38 @@ const ChatApp = () => {
         e.preventDefault();
         if (!message.trim() || !selectedFriend) return;
 
+        const recipientId = selectedFriend.userId || selectedFriend._id;
         const msgData = {
             sender: user._id,
-            receiver: selectedFriend.userId,
+            receiver: recipientId,
             message: message.trim(),
             replyTo: replyTo,
             createdAt: new Date().toISOString(),
         };
 
-        socket.emit("sendMessage", msgData);
+        // For faculty, also send to backend API
+        if (user?.role === 'Faculty') {
+            const recipientId = selectedFriend.userId || selectedFriend._id;
+            console.log("Sending faculty message to:", recipientId);
+            axios.post(`${url}/faculty/v2/sendMessage`, {
+                recipientId: recipientId,
+                message: message.trim()
+            }, {
+                withCredentials: true
+            }).then(response => {
+                if (response.data.success) {
+                    // Add the new message to the state
+                    const newMessageData = response.data.data;
+                    setMessages(prev => [...prev, newMessageData]);
+                }
+            }).catch(error => {
+                console.error("Error sending faculty message:", error);
+                toast.error("Failed to send message");
+            });
+        } else {
+            socket.emit("sendMessage", msgData);
+        }
+
         setMessage("");
         setReplyTo(null);
         setShowEmojiPicker(false);
@@ -258,6 +389,77 @@ const ChatApp = () => {
         setShowEmojiPicker(false);
     };
 
+    // WhatsApp-like features
+    const initiateVideoCall = () => {
+        if (!selectedFriend) return;
+        
+        setCallStatus('calling');
+        setShowVideoCall(true);
+        
+        // Emit video call signal
+        socket.emit('video-call', {
+            from: user._id,
+            to: selectedFriend.userId,
+            type: 'video'
+        });
+        
+        toast.success('Initiating video call...');
+    };
+
+    const initiateVoiceCall = () => {
+        if (!selectedFriend) return;
+        
+        setCallStatus('calling');
+        setShowVoiceCall(true);
+        
+        // Emit voice call signal
+        socket.emit('voice-call', {
+            from: user._id,
+            to: selectedFriend.userId,
+            type: 'voice'
+        });
+        
+        toast.success('Initiating voice call...');
+    };
+
+    const endCall = () => {
+        setCallStatus('idle');
+        setShowVideoCall(false);
+        setShowVoiceCall(false);
+        
+        // Emit end call signal
+        socket.emit('end-call', {
+            from: user._id,
+            to: selectedFriend?.userId
+        });
+        
+        toast.info('Call ended');
+    };
+
+    const pinMessage = (messageId) => {
+        setPinnedMessages(prev => [...prev, messageId]);
+        toast.success('Message pinned');
+    };
+
+    const searchInMessages = (query) => {
+        setSearchMessages(query);
+        setShowSearchResults(query.length > 0);
+    };
+
+    const markAsRead = (friendId) => {
+        setUnreadCounts(prev => ({ ...prev, [friendId]: 0 }));
+        // Emit read receipt
+        socket.emit('mark-read', { from: user._id, to: friendId });
+    };
+
+    const getLastSeen = (friendId) => {
+        return lastSeen[friendId] || 'Unknown';
+    };
+
+    const isOnline = (friendId) => {
+        return onlineUsers.has(friendId);
+    };
+
     const formatTime = (timestamp) => {
         if (!timestamp) return "";
         const date = new Date(timestamp);
@@ -306,9 +508,9 @@ const ChatApp = () => {
     );
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-full bg-gray-50">
             {/* Sidebar */}
-            <div className={`${showSidebar ? 'w-80' : 'w-0'} transition-all duration-300 h-screen flex flex-col overflow-hidden bg-white border-r border-gray-200 shadow-lg`}>
+            <div className={`${showSidebar ? 'w-80' : 'w-0'} transition-all duration-300 h-full flex flex-col overflow-hidden bg-white border-r border-gray-200 shadow-lg`}>
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-white">Messages</h2>
@@ -346,10 +548,9 @@ const ChatApp = () => {
                             ) : (
                                 filteredFriends.map((friend) => (
                                     <div
-                                        key={friend._id}
-                                        onClick={() => setSelectedFriend(friend)}
+                                        key={friend._id || friend.userId}
                                         className={`flex items-center p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                            selectedFriend?._id === friend._id
+                                            selectedFriend?._id === friend._id || selectedFriend?.userId === friend.userId
                                                 ? "bg-blue-50 border-l-4 border-blue-500"
                                                 : ""
                                         }`}
@@ -358,7 +559,12 @@ const ChatApp = () => {
                                             <img
                                                 src={friend.profileImage || "/default-avatar.png"}
                                                 alt={friend.name}
-                                                className="w-12 h-12 rounded-full object-cover"
+                                                className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleProfileClick(friend.userId || friend._id);
+                                                }}
+                                                title="View Profile"
                                             />
                                             {onlineUsers.has(friend.userId) && (
                                                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
@@ -366,13 +572,30 @@ const ChatApp = () => {
                                         </div>
                                         <div className="ml-3 flex-1 min-w-0">
                                             <div className="flex items-center justify-between">
-                                                <div className="font-medium text-gray-900 truncate">{friend.name}</div>
+                                                <div 
+                                                    className="font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+                                                    onClick={() => {
+                                                        console.log("Selected friend:", friend);
+                                                        console.log("Friend ID:", friend._id || friend.userId);
+                                                        setSelectedFriend(friend);
+                                                    }}
+                                                >
+                                                    {friend.name}
+                                                </div>
                                                 <div className="text-xs text-gray-500">
                                                     {formatTime(friend.lastMessageTime)}
                                                 </div>
                                             </div>
                                             <div className="text-sm text-gray-500 truncate">
-                                                {friend.lastMessage || "No messages yet"}
+                                                {friend.lastMessage ? (
+                                                    friend.lastMessageSender === user._id ? (
+                                                        <span>You: {friend.lastMessage}</span>
+                                                    ) : (
+                                                        friend.lastMessage
+                                                    )
+                                                ) : (
+                                                    "No messages yet"
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -385,7 +608,7 @@ const ChatApp = () => {
 
             {/* Chat Area */}
             {selectedFriend ? (
-                <div className="flex-1 h-screen flex flex-col overflow-hidden">
+                <div className="flex-1 h-full flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
                         <div className="flex items-center">
@@ -399,28 +622,39 @@ const ChatApp = () => {
                                 <img
                                     src={selectedFriend.profileImage || "/default-avatar.png"}
                                     alt={selectedFriend.name}
-                                    className="w-10 h-10 rounded-full object-cover"
+                                    className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => handleProfileClick(selectedFriend.userId || selectedFriend._id)}
+                                    title="View Profile"
                                 />
                                 {onlineUsers.has(selectedFriend.userId) && (
                                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                                 )}
                             </div>
                             <div className="ml-3">
-                                <div className="font-medium text-gray-900">{selectedFriend.name}</div>
+                                <div 
+                                    className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={() => handleProfileClick(selectedFriend.userId || selectedFriend._id)}
+                                >
+                                    {selectedFriend.name}
+                                </div>
                                 <div className="text-sm text-gray-500">
                                     {onlineUsers.has(selectedFriend.userId) ? "Online" : "Offline"}
                                 </div>
                             </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Link 
-                                to="/call" 
-                                state={{ sender: user._id, receiver: selectedFriend.userId }}
+                            <button
+                                onClick={initiateVideoCall}
                                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                title="Video Call"
                             >
                                 <Video size={20} className="text-gray-600" />
-                            </Link>
-                            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                            </button>
+                            <button
+                                onClick={initiateVoiceCall}
+                                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                title="Voice Call"
+                            >
                                 <Phone size={20} className="text-gray-600" />
                             </button>
                             <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -627,6 +861,66 @@ const ChatApp = () => {
                         <p className="text-gray-500 max-w-md">
                             Select a conversation from the sidebar to start chatting with your connections
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Video Call Overlay */}
+            {showVideoCall && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <div className="text-center">
+                            <div className="mb-4">
+                                <Video size={48} className="text-blue-600 mx-auto mb-2" />
+                                <h3 className="text-xl font-semibold">Video Call</h3>
+                                <p className="text-gray-600">Calling {selectedFriend?.name}...</p>
+                            </div>
+                            
+                            <div className="flex justify-center space-x-4">
+                                <button
+                                    onClick={endCall}
+                                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    End Call
+                                </button>
+                                <button
+                                    onClick={() => setShowVideoCall(false)}
+                                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Voice Call Overlay */}
+            {showVoiceCall && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <div className="text-center">
+                            <div className="mb-4">
+                                <Phone size={48} className="text-green-600 mx-auto mb-2" />
+                                <h3 className="text-xl font-semibold">Voice Call</h3>
+                                <p className="text-gray-600">Calling {selectedFriend?.name}...</p>
+                            </div>
+                            
+                            <div className="flex justify-center space-x-4">
+                                <button
+                                    onClick={endCall}
+                                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    End Call
+                                </button>
+                                <button
+                                    onClick={() => setShowVoiceCall(false)}
+                                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

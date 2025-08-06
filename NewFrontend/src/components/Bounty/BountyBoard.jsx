@@ -91,17 +91,24 @@ const BountyBoard = () => {
 
     const applyHandler = async (bountyId) => {
         try {
+            console.log(`[FRONTEND] Applying for bounty: ${bountyId}`);
             const response = await axios.post(
                 `${url}/bounty/v2/applying/${bountyId}`,
                 {},
                 { withCredentials: true }
             );
 
-            const { message } = response.data;
-            toast.success(message || "Applied successfully!");
+            const { message, teamsFormed, remainingUsers } = response.data;
+            console.log(`[FRONTEND] Application response:`, response.data);
+            
+            if (teamsFormed > 0) {
+                toast.success(`${message} ${teamsFormed} team(s) formed!`);
+            } else {
+                toast.success(message || "Applied successfully!");
+            }
         } catch (error) {
             console.error("Error applying for bounty:", error.response);
-            const message = error.response.data.message;
+            const message = error.response?.data?.message || "Failed to apply";
             toast.error(message);
         }
     };

@@ -56,24 +56,30 @@ const DirectorPanel = () => {
 
     const fetchConnections = async () => {
         try {
+            console.log('Fetching director connections...');
             const response = await axios.get(`${url}/director/v2/connections`, {
                 withCredentials: true
             });
+            console.log('Connections response:', response.data);
             setConnections(response.data.users);
         } catch (error) {
             console.error('Error fetching connections:', error);
+            console.error('Error details:', error.response?.data);
             toast.error('Failed to fetch connections');
         }
     };
 
     const fetchAnalytics = async () => {
         try {
+            console.log('Fetching analytics...');
             const response = await axios.get(`${url}/director/v2/analytics`, {
                 withCredentials: true
             });
+            console.log('Analytics response:', response.data);
             setAnalytics(response.data.analytics);
         } catch (error) {
             console.error('Error fetching analytics:', error);
+            console.error('Error details:', error.response?.data);
             toast.error('Failed to fetch analytics');
         }
     };
@@ -222,7 +228,7 @@ const DirectorPanel = () => {
                 <p className="text-3xl font-bold text-purple-600">{analytics?.totalAlumni || 0}</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-700">Online Users</h3>
+                <h3 className="text-lg font-semibold text-gray-700">Students </h3>
                 <p className="text-3xl font-bold text-orange-600">{analytics?.onlineUsers || 0}</p>
             </div>
         </div>

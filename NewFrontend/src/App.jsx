@@ -18,6 +18,10 @@ import DirectorLogin from './Authorization/DirectorLogin';
 import DirectorPanel from './components/Director/DirectorPanel';
 import DirectorProfile from './components/Profile/DirectorProfile';
 import DirectorTest from './components/Director/DirectorTest';
+import FacultyDashboard from './components/Home/FacultyDashboard';
+import AlumniDashboard from './components/Home/AlumniDashboard';
+import PublicProfile from './components/Profile/PublicProfile';
+import TeamPanel from './components/Home/TeamPanel';
 
 function App() {
   const { user } = useContext(StudentContext);
@@ -29,6 +33,10 @@ function App() {
         <Routes>
           <Route path='/' element={<LandingPage />}></Route>
           <Route path='/DashBoard' element={<StudentDashboard />}></Route>
+          <Route path='/faculty-dashboard' element={<FacultyDashboard />}></Route>
+          <Route path='/alumni-dashboard' element={<AlumniDashboard />}></Route>
+          <Route path='/profile/:userId' element={<PublicProfile />}></Route>
+          <Route path='/team-panel' element={<TeamPanel />}></Route>
           <Route path='/signup' element={<Signup />}></Route>
           <Route path='/Login' element={<LoginPage />}></Route>
           <Route path='/director-login' element={<DirectorLogin />}></Route>

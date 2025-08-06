@@ -36,20 +36,24 @@ const StudentContextProvider = ({ children }) => {
             withCredentials: true,
           });
         } catch (studentError) {
+          console.log("Student endpoint failed, trying director...");
           // If student endpoint fails, try director endpoint
           try {
             response = await axios.get(`${url}/director/v2/info`, {
               withCredentials: true,
             });
+            console.log("Director response:", response.data);
             // Transform director response to match user format
             response.data.user = response.data.director;
           } catch (directorError) {
+            console.log("Director endpoint failed, trying faculty...");
             // If both fail, try faculty endpoint
             try {
               response = await axios.get(`${url}/faculty/v2/getinfo`, {
                 withCredentials: true,
               });
             } catch (facultyError) {
+              console.log("Faculty endpoint failed, trying alumni...");
               // If all fail, try alumni endpoint
               response = await axios.get(`${url}/alumni/v2/getinfo`, {
                 withCredentials: true,

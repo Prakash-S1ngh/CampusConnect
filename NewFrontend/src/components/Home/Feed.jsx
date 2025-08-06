@@ -6,9 +6,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import { url } from '../../lib/PostUrl';
 import { StudentContext } from '../Student/StudentContextProvider';
 import OptionsMenu from '../Post/OptionsMenu';
+import { useNavigate } from 'react-router-dom';
 
 const Feed = () => {
   const { user, socket } = useContext(StudentContext);
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -23,6 +25,10 @@ const Feed = () => {
   const [commentInputs, setCommentInputs] = useState({});
   const [commentsLoading, setCommentsLoading] = useState({});
   const [visibleComments, setVisibleComments] = useState({});
+
+  const handleProfileClick = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
 
 
   const toggleComments = async (postId) => {
@@ -466,12 +472,19 @@ const Feed = () => {
               <img
                 src={post.createdBy?.profileImage}
                 alt={post.createdBy?.name}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => handleProfileClick(post.createdBy?._id)}
+                title="View Profile"
               />
               <div className="flex-1">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium">{post.createdBy?.name}</h3>
+                    <h3 
+                      className="font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                      onClick={() => handleProfileClick(post.createdBy?._id)}
+                    >
+                      {post.createdBy?.name}
+                    </h3>
                     <p className="text-xs text-gray-500">
                       {post.createdBy?.role} • {formatDate(post.createdAt)}
                     </p>

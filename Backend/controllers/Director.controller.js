@@ -5,6 +5,7 @@ const User = require("../models/User.models");
 const Director = require("../models/Director.model");
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 // Director login
 exports.loginDirector = async (req, res) => {
@@ -16,7 +17,7 @@ exports.loginDirector = async (req, res) => {
         }
 
         // Find director by email
-        const director = await User.findOne({ email, role: 'Director' });
+        const director = await User.findOne({ email, role: 'Director' }).populate('college directorDetails');
         if (!director) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -27,8 +28,17 @@ exports.loginDirector = async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Generate JWT token (you'll need to implement this based on your auth system)
-        // For now, we'll return the user data
+        // Generate JWT token
+        const token = jwt.sign({ userId: director._id }, process.env.JWT_SECRET, { expiresIn: '12h' });
+
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 24 * 3600000, // 12 hours
+        });
+
         return res.status(200).json({
             success: true,
             message: "Director logged in successfully",
@@ -38,7 +48,8 @@ exports.loginDirector = async (req, res) => {
                 email: director.email,
                 role: director.role,
                 profileImage: director.profileImage,
-                college: director.college
+                college: director.college,
+                directorDetails: director.directorDetails
             }
         });
 
@@ -54,8 +65,11 @@ exports.loginDirector = async (req, res) => {
 // Director logout
 exports.logoutDirector = async (req, res) => {
     try {
-        // Clear session/token (implement based on your auth system)
-        res.clearCookie('auth_token');
+        // Clear the token cookie
+        res.clearCookie("token", {
+            httpOnly: true,
+            sameSite: "Strict",
+        });
         
         return res.status(200).json({
             success: true,
@@ -390,32 +404,25 @@ exports.getDirectorById = async (req, res) => {
     try {
         const id = req.userId;
 
-        const director = await User.findById(id);
+        const director = await User.findById(id).populate('college directorDetails');
         if (!director) {
             return res.status(404).json({ message: 'Director not found' });
         }
 
-        if (!director.directorDetails) {
-            return res.status(200).json({
-                success: true,
-                message: 'No director details found for this director yet',
-                director: director
-            });
-        }
-
-        const directorInfo = await Director.findById(director.directorDetails);
-    
-        if (!directorInfo) {
-            return res.status(404).json({ message: 'Director information not found' });
+        if (director.role !== 'Director') {
+            return res.status(403).json({ message: 'Access denied. Only directors can access this endpoint' });
         }
 
         return res.status(200).json({
             success: true,
             director: {
-                ...directorInfo.toObject(),
+                _id: director._id,
                 name: director.name,
                 email: director.email,
-                profileImage: director.profileImage
+                role: director.role,
+                profileImage: director.profileImage,
+                college: director.college,
+                directorDetails: director.directorDetails
             }
         });
     } catch (error) {
