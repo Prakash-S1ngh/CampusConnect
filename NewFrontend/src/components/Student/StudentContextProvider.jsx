@@ -27,6 +27,7 @@ const StudentContextProvider = ({ children }) => {
 
 
   useEffect(() => {
+    
     const fetchUser = async () => {
       try {
         // Try to get user info from student endpoint first
@@ -34,6 +35,7 @@ const StudentContextProvider = ({ children }) => {
         try {
           response = await axios.get(`${url}/student/v2/getInfo`, {
             withCredentials: true,
+            credentials: "include",
           });
         } catch (studentError) {
           console.log("Student endpoint failed, trying director...");
