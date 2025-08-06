@@ -4,7 +4,7 @@ const User = require("../models/User.models");
 const College = require("../models/College.models");
 const Message = require("../models/Messages.models");
 const bcrypt = require("bcrypt");
-const uploadOnCloudinary = require("../config/Cloudinary.config");
+const {uploadOnCloudinary} = require("../config/Cloudinary.config");
 
 exports.signup = async (req, res) => {
     try {
