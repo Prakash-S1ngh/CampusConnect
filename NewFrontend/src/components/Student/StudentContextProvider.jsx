@@ -103,8 +103,9 @@ const StudentContextProvider = ({ children }) => {
       
       setUser(null);
       setLoggedIn(false);
-      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
       localStorage.clear(); // Flush local storage
+      socket.emit("disconnect", response.data.user._id.toString());
     } catch (error) {
       console.error("Error logging out:", error);
       // Even if logout fails, clear local state
