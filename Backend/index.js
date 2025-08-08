@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-    origin:"https://campus-connect-d7ca.vercel.app",
+    origin:"https://campus-connect-d7ca-d1mj69340-prakash-kumar-singhs-projects.vercel.app",
     credentials:true
 })
 );
