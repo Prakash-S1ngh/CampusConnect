@@ -229,7 +229,7 @@ const DirectorPanel = () => {
                 <p className="text-3xl font-bold text-purple-600">{analytics?.totalAlumni || 0}</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-700">Students </h3>
+                <h3 className="text-lg font-semibold text-gray-700">Online</h3>
                 <p className="text-3xl font-bold text-orange-600">{analytics?.onlineUsers || 0}</p>
             </div>
         </div>
