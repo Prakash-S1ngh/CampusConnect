@@ -88,6 +88,15 @@ const setupSocket = (server) => {
                 io.emit("updateStatus", { userId: user._id, isOnline: false, lastSeen: new Date() });
             }
         });
+        socket.on("userOffline", async (userId) => {
+        console.log("User disconnected:", socket.id);
+        const user = await User.findOneById(userId);
+
+        if (user) {
+            await User.findByIdAndUpdate(user._id, { isOnline: false, lastSeen: new Date() });
+            io.emit("updateStatus", { userId: user._id, isOnline: false, lastSeen: new Date() });
+            }
+        });
 
         socket.on("leaveRoom", ({ sender, receiver }) => {
             const roomId = [sender, receiver].sort().join("_");
