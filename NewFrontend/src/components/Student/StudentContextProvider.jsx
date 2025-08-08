@@ -69,7 +69,7 @@ const StudentContextProvider = ({ children }) => {
         console.log("User fetched:", response.data.user);
         
         // Notify backend that user is online 
-        socket.emit("userOnline", response.data.user._id);
+        socket.emit("userOnline", response.data.user._id.toString());
       } catch (error) {
         console.error("Error fetching user:", error);
         setLoggedIn(false);
