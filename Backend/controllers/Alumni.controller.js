@@ -125,7 +125,7 @@ exports.getAlumniConnections = async (req, res) => {
         const connections = await User.find({
             college: userCollege,
             _id: { $ne: userId },
-            role: { $in: ['Alumni', 'Faculty'] }
+            role: { $in: ['Alumni'] }
         }).populate('alumniDetails facultyDetails').select("name profileImage role alumniDetails facultyDetails");
 
         const result = connections.map(user => ({
